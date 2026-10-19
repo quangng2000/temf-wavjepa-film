@@ -187,7 +187,7 @@ With the released mixture schedule $m(p)=0.3-0.2p$, define
 ```math
 \begin{aligned}
 \bar v &= \mathrm{sg}\!\bigl(m(p)\,v_{\mathrm{path}}+\bigl(1-m(p)\bigr)u_\theta(x_t,t,t\mid y,h)\bigr),
-  \qquad 0<t<1,\\[3pt]
+  \qquad 0\lt t\lt1,\\[3pt]
 \bar v &= \mathrm{sg}(v_{\mathrm{path}}),\qquad t=0\ \text{or}\ t=1.
 \end{aligned}
 \tag{7}
