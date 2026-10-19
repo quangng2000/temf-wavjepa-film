@@ -1,12 +1,18 @@
+# @package _global_
+defaults:
+  - _self_
+  - paths: default
+  - extras: default
+  - hydra: default
+  - optional local: default
+
+task_name: sample
+tags: [sample]
 checkpoint: ???
 input: ???
 output: outputs/restored.wav
+output_dir: ${hydra:runtime.output_dir}
 weights: ema
 nfe: 1
 seed: 42
 device: cpu
-hydra:
-  run:
-    dir: logs/sample/${now:%Y-%m-%d}/${now:%H-%M-%S}
-  job:
-    chdir: false

@@ -1,16 +1,22 @@
 """Restore a mono WAV from a trusted lab checkpoint; explicit raw/EMA selection."""
+# Root discovery must precede project imports for the direct-script entry point.
+# ruff: noqa: E402
 
 import json
 from pathlib import Path
 
 import hydra
+import rootutils
 import soundfile as sf
 import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+
 from src.data.pairs import read_audio
 from src.flow.solver import solve
+from src.utils import extras
 
 
 def load_model(path, weights, device):
@@ -19,6 +25,7 @@ def load_model(path, weights, device):
     if checkpoint.get("lab_format") != "sgmse-temf-v2":
         raise ValueError("Old lab checkpoint format requires explicit migration")
     model = instantiate(OmegaConf.create(checkpoint["run_config"]["model"]))
+    model.run_config = checkpoint["run_config"]
     model.on_load_checkpoint(checkpoint)
     model.conditioner.load(device)
     model.load_state_dict(checkpoint["state_dict"], strict=True)
@@ -46,6 +53,7 @@ def restore(model, waveform, nfe, seed):
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="sample")
 def main(cfg):
+    extras(cfg)
     output = Path(cfg.output)
     report_path = output.with_suffix(".json")
     if output.exists() or report_path.exists():

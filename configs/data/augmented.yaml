@@ -1,5 +1,5 @@
 # Opt-in baseline, not an exact reproduction of a paper's degradation distribution.
-_target_: src.data.online.OnlineDataModule
+_target_: src.data.augmented_datamodule.OnlineDataModule
 _recursive_: false
 train_manifest: ???
 val_manifest: ???

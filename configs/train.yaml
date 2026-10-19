@@ -1,4 +1,5 @@
-# Config groups and experiment overrides follow lightning-hydra-template.
+# @package _global_
+# Groups and override order follow the Lightning-Hydra template.
 defaults:
   - _self_
   - data: paired
@@ -6,16 +7,24 @@ defaults:
   - callbacks: default
   - logger: csv
   - trainer: default
+  - paths: default
+  - extras: default
+  - hydra: default
   - experiment: null
+  - hparams_search: null
+  - optional local: default
+  - debug: null
 
+task_name: train
+tags: [dev]
+train: true
+optimized_metric: null
+# Empty group selection (logger=[]) keeps this null fallback.
+logger: null
+ckpt_path: null
 seed: 42
 cpu_threads: 4
 total_updates: 300000
 fixture: false
-ckpt_path: null
+# Retained for existing CLI overrides and programmatic fixture tests.
 output_dir: ${hydra:runtime.output_dir}
-hydra:
-  run:
-    dir: logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
-  job:
-    chdir: false

@@ -1,0 +1,7 @@
+defaults:
+  - default
+
+accelerator: gpu
+devices: 1
+# Full JVP has only been validated in FP32; this preset does not enable AMP.
+precision: 32-true

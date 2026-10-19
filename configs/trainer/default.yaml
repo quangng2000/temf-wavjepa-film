@@ -1,5 +1,5 @@
 _target_: lightning.pytorch.Trainer
-default_root_dir: ${output_dir}
+default_root_dir: ${paths.output_dir}
 accelerator: cpu
 devices: 1
 precision: 32-true

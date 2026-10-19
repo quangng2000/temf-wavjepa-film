@@ -1,0 +1,29 @@
+# @package _global_
+# Evaluate the validation split; this project has no separate test manifest.
+# Compose the same groups directly: merging ??? over train's null would retain null.
+defaults:
+  - _self_
+  - data: evaluation
+  - model: temf
+  - callbacks: default
+  - logger: csv
+  - trainer: default
+  - paths: default
+  - extras: default
+  - hydra: default
+  - experiment: null
+  - optional local: default
+  - debug: null
+
+task_name: eval
+tags: [eval]
+train: false
+optimized_metric: null
+logger: null
+ckpt_path: ???
+weights: raw
+seed: 42
+cpu_threads: 4
+total_updates: 300000
+fixture: false
+output_dir: ${hydra:runtime.output_dir}

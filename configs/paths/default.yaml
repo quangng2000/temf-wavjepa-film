@@ -1,0 +1,7 @@
+# PROJECT_ROOT is set by rootutils before Hydra composes the configuration.
+root_dir: ${oc.env:PROJECT_ROOT}
+data_dir: ${paths.root_dir}/data
+log_dir: ${paths.root_dir}/logs
+output_dir: ${output_dir}
+# A plain environment resolver also works in programmatic composition.
+work_dir: ${oc.env:PWD,${paths.root_dir}}

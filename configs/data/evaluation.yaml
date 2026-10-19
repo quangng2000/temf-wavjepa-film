@@ -1,0 +1,6 @@
+_target_: src.data.evaluation_datamodule.EvaluationDataModule
+val_manifest: ???
+batch_size: 4
+samples: 64000
+workers: 0
+seed: ${seed}

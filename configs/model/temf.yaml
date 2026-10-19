@@ -1,6 +1,6 @@
-_target_: src.models.module.RestorationModule
+_target_: src.models.temf_module.RestorationModule
 net:
-  _target_: src.models.network.NCSNppVelocity
+  _target_: src.models.components.network.NCSNppVelocity
   nf: 256
   channel_mult: [1, 1, 2, 2, 2, 2, 2]
   blocks: 2

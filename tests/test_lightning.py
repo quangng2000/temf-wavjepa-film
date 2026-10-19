@@ -18,13 +18,15 @@ def smoke_config(output):
 
 def test_optimizer_checkpoint_resume_ema_and_sampling(tmp_path):
     cfg = smoke_config(tmp_path)
-    trainer, module = train(cfg)
+    _, objects = train(cfg)
+    trainer, module = objects["trainer"], objects["model"]
     assert trainer.global_step == 2
     checkpoint = trainer.checkpoint_callback.last_model_path
     weights = torch.load(checkpoint, weights_only=False)
     assert weights["callbacks"]["restoration_ema"]["last_step"] == 2
     cfg.ckpt_path, cfg.trainer.max_steps = checkpoint, 3
-    resumed, _ = train(cfg)
+    _, objects = train(cfg)
+    resumed = objects["trainer"]
     assert resumed.global_step == 3
     model, step = load_model(resumed.checkpoint_callback.last_model_path, "ema", "cpu")
     output = restore(model, torch.zeros(1, 1024), 1, 7)

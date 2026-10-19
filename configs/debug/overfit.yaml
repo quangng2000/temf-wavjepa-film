@@ -1,0 +1,9 @@
+# @package _global_
+trainer:
+  overfit_batches: 1
+  max_steps: 10
+  # Validate once per epoch, which contains exactly one repeated batch.
+  check_val_every_n_epoch: 1
+  val_check_interval: 1.0
+  limit_val_batches: 1
+  enable_progress_bar: false

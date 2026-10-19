@@ -1,4 +1,4 @@
-_target_: src.data.module.PairedDataModule
+_target_: src.data.paired_datamodule.PairedDataModule
 train_manifest: ???
 val_manifest: ???
 batch_size: 4

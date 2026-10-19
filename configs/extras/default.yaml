@@ -1,0 +1,4 @@
+ignore_warnings: false
+# Non-interactive by default; missing tags can be rejected without a prompt.
+enforce_tags: false
+print_config: false

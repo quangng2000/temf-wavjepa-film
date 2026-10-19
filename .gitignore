@@ -34,3 +34,6 @@ outputs/
 .lake/
 
 /.cache/
+
+# Private per-machine Hydra overrides
+/configs/local/
