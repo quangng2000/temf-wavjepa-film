@@ -1,0 +1,29 @@
+# @package _global_
+defaults:
+  - override /data: synthetic
+
+fixture: true
+total_updates: 10
+cpu_threads: 2
+model:
+  net:
+    channels: [8, 16]
+    blocks: [1, 1]
+    context_width: 16
+    time_width: 32
+    groups: 4
+  spectrum:
+    n_fft: 64
+    hop: 32
+  conditioner:
+    _target_: src.audio.fixture.FixtureConditioner
+    local_files_only: null
+    features: 16
+trainer:
+  max_steps: 2
+  val_check_interval: 2
+  limit_val_batches: 1
+  enable_progress_bar: false
+callbacks:
+  checkpoint:
+    every_n_train_steps: 1

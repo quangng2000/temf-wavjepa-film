@@ -1,6 +1,31 @@
-# TEMF + wavJEPA FiLM restoration
+# TEMF + WavJEPA-Nat FiLM restoration
 
-Status: project scope and Lean proof suite established; redesigned model is not implemented or trained.
+Status: Lightning/Hydra training scaffold implemented and CPU smoke-tested; no
+full model training or real-data quality result yet. The default restoration
+network has **303,323,650 trainable parameters**, excluding frozen WavJEPA-Nat.
+
+The selected frozen conditioner is now **`labhamlet/wavjepa-nat-base`**, pinned to
+`15d95ff67fa98117b17e83a1653bbca97877ff6f`. See the
+[encoder contract](docs/wavjepa-nat.md) for mono input handling, feature shapes,
+alignment, and cache compatibility.
+
+## Run the lab
+
+See the [training guide](docs/training.md) for installation, paired-data manifests,
+Nat weights, checkpoint/resume, and raw/EMA sampling. The layout follows
+[lightning-hydra-template](https://github.com/ashleve/lightning-hydra-template).
+
+```sh
+python -m pip install -e '.[dev]'
+TORCH_DEVICE_BACKEND_AUTOLOAD=0 python -m pytest
+TORCH_DEVICE_BACKEND_AUTOLOAD=0 python -m src.train experiment=smoke
+```
+
+Run these inside an isolated Python 3.11/3.12 environment. The smoke experiment
+uses synthetic data and a tiny fixture network on CPU, with no weight downloads.
+Real training requires explicit paired-data manifests and the pinned Nat weights.
+The scaffold does not generate the paper's on-the-fly audio augmentations or
+control the existing RMFSR training process.
 
 ## Animation
 
@@ -32,46 +57,56 @@ frozen wavJEPA encoder; it is not run here. This is a process explanation, not a
 audio-quality result. The Gaussian prior and conditioning placement illustrate
 design choices still to be finalized. See the
 [reproducible source, checks and limitations](docs/animation/README.md).
+The existing animation's generic wavJEPA labels predate the Nat selection; its
+fixed projection does not demonstrate either pretrained encoder.
 
 ## Mathematics first
 
 All formal proofs live in [`lean/`](lean/README.md), with pinned Lean/Mathlib versions
 and an axiom-auditing checker. They cover the MeanFlow identity, reverse solver,
 TEMF weights/schedules, and FiLM derivatives. See [scope](lean/SCOPE.md) for the
-assumptions and limits. CPU implementation parity comes next, before GPU experiments.
+assumptions and limits. CPU tests compare TEMF weights, schedules, and the full
+continuous target against a numeric reference from the pinned authors' code.
+These checks establish implementation behavior, not restoration quality.
 
 ## Agreed scope
 
 - Target approximately **300 million trainable restoration parameters**.
-- Keep the existing **89,280,768-parameter wavJEPA encoder frozen**.
-- Use wavJEPA features to condition restoration through trainable **FiLM** adapters.
+- Keep the selected **WavJEPA-Nat encoder frozen** in evaluation mode.
+- Use WavJEPA-Nat features to condition restoration through trainable **FiLM** adapters.
 - Predict the **mean velocity directly**, rather than converting a clean-coefficient prediction into velocity.
 - Implement and test TEMF's objective and time sampling against the pinned authors' code.
 
-The combined inference model would contain approximately 389 million parameters.
-The exact count depends on the backbone and adapter design, which remain to be specified.
+Count the selected Nat inference path separately from the approximately 300 million
+trainable restoration parameters. The former mono encoder's 89,280,768-parameter
+count and combined 389M estimate do not establish the Nat model's count. The lab's
+303,323,650 trainable parameters include its backbone and adapters; the upstream
+checkpoint also contains pretraining modules unused by feature extraction.
 
-## Proposed signal path
+## Implemented signal path
 
 1. Encode degraded audio as compressed complex STFT coefficients.
-2. Independently extract frozen wavJEPA features from the same degraded waveform.
-3. Align those features to audio-frame positions and project them through trainable adapters.
+2. Duplicate the same degraded mono waveform into two channels for frozen WavJEPA-Nat.
+3. Concatenate its channel features at each timestamp, align to STFT audio frames,
+   and project them through trainable adapters.
 4. Generate FiLM scale and shift for selected restoration blocks.
 5. Condition the restoration backbone on the flow state, degraded coefficients,
-   current/destination flow times, and the aligned wavJEPA context.
+   current/destination flow times, and the aligned WavJEPA-Nat context.
 6. Predict mean velocity and integrate it to the clean endpoint.
 7. Decompress coefficients and reconstruct the waveform with inverse STFT.
 
-FiLM will start as an identity modulation: `(1 + scale) * features + shift`,
-with zero-initialized final scale/shift projections. Placement and normalization
-must be explicit experimental choices; they are not established quality improvements.
+FiLM starts as an identity modulation: `(1 + scale) * features + shift`,
+with zero-initialized final scale/shift projections. The baseline applies it in
+every residual block. Placement and normalization remain experimental choices;
+they are not established quality improvements.
 
 ## Training and sampling pseudocode
 
-This is the **proposed algorithm for the new model**, not an implemented production
-trainer. It combines the pinned TEMF continuous target/weight/schedule with our
-speech representation and conditioning design. The animation runs a much smaller
-toy calculation; it does not execute this full training loop.
+This summarizes the **implemented experimental trainer**, not a validated production
+run. It combines the pinned TEMF continuous target/weight/schedule with our speech
+representation and conditioning design. See [`src/train.py`](src/train.py) and the
+[training guide](docs/training.md). The animation runs a much smaller toy calculation;
+it does not execute this full training loop.
 
 For a concrete baseline, the pseudocode uses a **unit Gaussian prior**, compressed
 complex STFT coefficients, conditional prediction without classifier-free guidance
@@ -85,10 +120,12 @@ The sampling and target formulas follow the
 
 ### Variables and direction
 
-- `a_clean`, `a_obs`: aligned clean and degraded waveforms of the same underlying speech.
+- `a_clean`, `a_obs`: aligned 16 kHz mono clean and degraded waveforms of the same
+  underlying speech, shaped `[batch, samples]` with equal lengths within a batch.
 - `c = E(a_clean)`, `y = E(a_obs)`: compressed complex STFTs, represented as
   real/imaginary channels with shape `[batch, 2, frequency, audio_frame]`.
-- `h = wavJEPA(a_obs)`: frozen context extracted from the **degraded waveform**.
+- `h = extract_nat_context(a_obs)`: frozen context from the **degraded waveform**,
+  shaped `[batch, audio_frame, 1536]` after channel concatenation and alignment.
 - `z`: Gaussian prior with the same shape as `c`.
 - `t`, `r`: current and destination **flow times**, with `0 <= r <= t <= 1`.
   Flow time is separate from the waveform's audio-frame axis and the optimizer step.
@@ -100,6 +137,43 @@ Inference runs backward from `t = 1` toward `t = 0`. The observed coefficients `
 are a separate condition; they are not substituted for the Gaussian prior here.
 Time vectors `t` and `r` have shape `[batch]`. `broadcast_time` reshapes them to
 `[batch, 1, 1, 1]` for coefficient arithmetic; scalar loss weights stay `[batch]`.
+
+### Frozen WavJEPA-Nat context
+
+The mono baseline duplicates the observed waveform into both input channels, as in
+the authors' mono evaluation. It adds no real binaural information. Nat supplies
+representations learned with noise and reverberation; it does not output separated
+speech/noise signals or clean coefficients. Channel concatenation is our explicit
+FiLM design choice, not an upstream speech-restoration result.
+
+```python
+NAT_ID = "labhamlet/wavjepa-nat-base"
+NAT_REVISION = "15d95ff67fa98117b17e83a1653bbca97877ff6f"
+# Load the reviewed model AND processor from this revision before either loop.
+# Freeze every encoder parameter; keep trainable adapters outside this helper.
+
+@no_grad()
+def extract_nat_context(a_obs):
+    assert a_obs.ndim == 2                  # equal-length mono batch at 16 kHz
+    dual_mono = stack((a_obs, a_obs), dim=1) # [batch, 2, samples]
+    inputs = nat_processor(
+        [clip.cpu().numpy() for clip in dual_mono],
+        sampling_rate=16000, return_tensors="pt",
+    )
+    features, timestamps_ms = wavjepa_nat(inputs["input_values"].to(encoder_device))
+    # Released output: [batch, 2, encoder_frame, 768], plus timestamps in ms.
+    h = concat((features[:, 0], features[:, 1]), dim=-1)
+    h = align_to_stft_frames(h, timestamps_ms / 1000, stft_frame_times(a_obs))
+    return h.detach().clone()               # ordinary tensor for trainable FiLM
+```
+
+The executable helper is [`src/audio/nat.py`](src/audio/nat.py). The pinned processor's
+RMS normalization applies only to the encoder input; waveform scaling used by `E`
+and `D` is preserved. The model performs its own segment normalization. Mock-based
+tests cover channel ordering, timestamp interpolation, and inference-mode tensor
+conversion; actual pretrained extraction and segment-boundary alignment still
+need validation. Old mono-wavJEPA feature caches must not be reused. Details are
+in the [encoder contract](docs/wavjepa-nat.md).
 
 ### Shared audio transforms and velocity network
 
@@ -138,8 +212,9 @@ def U(theta, x, y, t, r, h):
     return theta.velocity_head(H)            # velocity, not clean coefficients
 ```
 
-This block layout is schematic: backbone dimensions, FiLM locations, and normalization
-groups remain architecture choices. `frame_group_norm` groups channels/frequencies
+This block layout is schematic; [`configs/model/temf.yaml`](configs/model/temf.yaml)
+specifies the implemented backbone dimensions and normalization groups.
+`frame_group_norm` groups channels/frequencies
 within an audio frame; `pnorm` normalizes each time-control vector to approximately
 unit RMS. Fixed
 sin/cos frequencies are not learned parameters. The animation uses 32 angular
@@ -147,7 +222,7 @@ frequencies per flow time, ranging from 1 to 0.0001. This is **sCM-inspired cond
 it does not replace the TEMF objective with sCM's objective or TrigFlow path.
 
 Initialize the FiLM heads' final projections to zero so `delta_gamma = beta = 0`
-initially. Freeze only wavJEPA; the adapters and FiLM heads remain trainable.
+initially. Freeze only WavJEPA-Nat; the adapters and FiLM heads remain trainable.
 The pseudocode does not claim streaming causality: alignment, padding, context,
 and receptive fields must be specified before making a latency claim.
 
@@ -180,8 +255,8 @@ The velocity mixture below uses `mix = 0.3 - 0.2*progress`.
 ### One training update
 
 ```python
-freeze_parameters(wavJEPA)
-wavJEPA.eval()
+freeze_parameters(wavjepa_nat)
+wavjepa_nat.eval()
 theta.train()
 # Optimizer owns theta only. Keep input-derivative operations deterministic.
 
@@ -190,8 +265,7 @@ for step in range(planned_updates):
     a_clean, a_obs = next_aligned_augmented_batch()
     c, y = E(a_clean), E(a_obs)
 
-    with no_grad():
-        h = wavJEPA(wavJEPA_preprocess(a_obs))
+    h = extract_nat_context(a_obs)
     h = stop_gradient(h)                    # cache only this frozen representation
 
     t, r = sample_flow_times(batch_size=len(c), progress=progress)
@@ -249,7 +323,7 @@ It is not just the time partial derivative. When `r = t`, the correction vanishe
 the released continuous branch also skips it for numerically close times.
 
 Only the fresh `prediction` branch supplies parameter gradients for this loss.
-Those gradients reach the CNN, time MLPs, adapters, and FiLM heads, but not wavJEPA.
+Those gradients reach the CNN, time MLPs, adapters, and FiLM heads, but not WavJEPA-Nat.
 The loss compares **predicted velocity with a detached velocity target**. There is
 no extra comparison of final restored audio against clean audio in this baseline,
 and no coefficient-head `1/t²` conversion is needed for a direct velocity head.
@@ -267,9 +341,9 @@ def restore(a_obs, NFE, sampling_weights, seed):
     assert NFE >= 1
     theta = sampling_weights                # explicitly choose EMA or raw weights
     theta.eval()
-    wavJEPA.eval()
+    wavjepa_nat.eval()
     y = E(a_obs)
-    h = wavJEPA(wavJEPA_preprocess(a_obs))   # one encoder call, reused at every step
+    h = extract_nat_context(a_obs)          # one encoder call, reused at every step
     x = standard_normal_like(y, seed=seed)  # same prior convention as training
 
     times = linspace(1.0, 0.0, NFE + 1)     # simple baseline inference grid
@@ -287,7 +361,7 @@ state; they do not guarantee better audio. The uniform grid is an explicit basel
 not a claim to reproduce every sampler setting used by the TEMF authors.
 
 Sampling has **no clean target, JVP, loss, or backpropagation**. NFE counts velocity
-network evaluations; wavJEPA feature extraction and STFT/inverse STFT add their own
+network evaluations; WavJEPA-Nat feature extraction and STFT/inverse STFT add their own
 cost. Keep waveform scaling, frame alignment, compression, and the prior consistent
 between training and inference. A future streaming implementation must also maintain
 encoder/model state and overlap-add boundaries across chunks.
@@ -301,7 +375,7 @@ Reference commit: `78c531cca978a23113b262cd0b6bede2197b1916`.
   stop-gradient placement, and reduction conventions with numerical parity tests.
 - Record the exact source configuration; distinguish released defaults from paper ablations.
 - Resolve the Gaussian versus degraded-centered prior explicitly before implementation.
-- Treat compressed STFT, wavJEPA, FiLM, and any prior change as speech-specific adaptations.
+- Treat compressed STFT, WavJEPA-Nat, FiLM, and any prior change as speech-specific adaptations.
 - Specify guidance behavior rather than silently omitting or adding classifier-free guidance.
 - Keep full MeanFlow derivatives. Do not silently remove a derivative term for stability.
 
@@ -339,4 +413,4 @@ not launch training, create resources, or change any running process.
 - [Bottleneck conditioning for speech enhancement](https://arxiv.org/abs/2606.22591)
 - [WavJEPA: Semantic learning unlocks robust audio foundation models for raw waveforms](https://arxiv.org/abs/2509.23238) — Yuksel et al. (2025).
 - [Official WavJEPA implementation](https://github.com/labhamlet/wavjepa)
-- [Pinned wavJEPA encoder](https://huggingface.co/labhamlet/wavjepa-base/tree/6be4a5093f6c9adbbd55e00b6e5b8f067aa03345)
+- [Pinned WavJEPA-Nat encoder](https://huggingface.co/labhamlet/wavjepa-nat-base/tree/15d95ff67fa98117b17e83a1653bbca97877ff6f)

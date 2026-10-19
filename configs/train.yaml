@@ -1,0 +1,21 @@
+# Config groups and experiment overrides follow lightning-hydra-template.
+defaults:
+  - _self_
+  - data: paired
+  - model: temf
+  - callbacks: default
+  - logger: csv
+  - trainer: default
+  - experiment: null
+
+seed: 42
+cpu_threads: 4
+total_updates: 300000
+fixture: false
+ckpt_path: null
+output_dir: ${hydra:runtime.output_dir}
+hydra:
+  run:
+    dir: logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

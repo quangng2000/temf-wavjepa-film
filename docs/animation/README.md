@@ -6,6 +6,10 @@ SGD step, four reverse sampling steps, and waveform reconstruction. It is a nume
 explanation, not a trained
 speech-restoration result or an implementation of the proposed 300M model.
 
+The lab now selects [WavJEPA-Nat](../wavjepa-nat.md). The existing media retains
+generic wavJEPA labels and a fixed projection stand-in; it has not been rerendered
+and does not demonstrate the Nat encoder or its two-channel feature layout.
+
 ## What is computed
 
 `toy_trace.py` evaluates a small deterministic PyTorch model and saves `trace.json`.

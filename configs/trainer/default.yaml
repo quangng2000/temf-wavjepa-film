@@ -1,0 +1,17 @@
+_target_: lightning.pytorch.Trainer
+default_root_dir: ${output_dir}
+accelerator: cpu
+devices: 1
+precision: 32-true
+max_steps: ${total_updates}
+max_epochs: -1
+check_val_every_n_epoch: null
+val_check_interval: 5000
+num_sanity_val_steps: 0
+gradient_clip_val: 1.0
+gradient_clip_algorithm: norm
+accumulate_grad_batches: 1
+log_every_n_steps: 1
+inference_mode: false
+enable_model_summary: false
+deterministic: true

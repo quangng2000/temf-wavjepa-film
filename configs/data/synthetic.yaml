@@ -1,0 +1,3 @@
+_target_: src.data.fixture.SyntheticDataModule
+batch_size: 2
+samples: 1024

@@ -1,0 +1,12 @@
+checkpoint: ???
+input: ???
+output: outputs/restored.wav
+weights: ema
+nfe: 1
+seed: 42
+device: cpu
+hydra:
+  run:
+    dir: logs/sample/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

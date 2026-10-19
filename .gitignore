@@ -11,11 +11,12 @@ build/
 dist/
 
 # Local data, weights, and experiments
-data/
+/data/
 datasets/
 checkpoints/
 runs/
 outputs/
+/logs/
 *.pt
 *.pth
 *.ckpt

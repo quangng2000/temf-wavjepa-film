@@ -1,0 +1,26 @@
+_target_: src.models.module.RestorationModule
+net:
+  _target_: src.models.network.VelocityUNet
+  channels: [128, 256, 512, 1024]
+  blocks: [2, 2, 4, 5]
+  context_width: 1536
+  time_width: 256
+  groups: 8
+spectrum:
+  _target_: src.audio.spectrum.Spectrum
+  n_fft: 512
+  hop: 160
+  exponent: 0.3
+  sample_rate: 16000
+conditioner:
+  _target_: src.audio.nat.FrozenNat
+  local_files_only: true
+objective:
+  _target_: src.flow.objective.TEMFObjective
+  total_updates: ${total_updates}
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0001
+  weight_decay: 0.01
+  betas: [0.9, 0.99]
