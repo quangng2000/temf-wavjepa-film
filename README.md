@@ -111,4 +111,6 @@ not launch training, create resources, or change any running process.
 - [FiLM paper](https://arxiv.org/abs/1709.07871)
 - [sCM conditioning and stabilization](https://arxiv.org/html/2410.11081v2#S4.SS1)
 - [Bottleneck conditioning for speech enhancement](https://arxiv.org/abs/2606.22591)
+- [WavJEPA: Semantic learning unlocks robust audio foundation models for raw waveforms](https://arxiv.org/abs/2509.23238) — Yuksel et al. (2025).
+- [Official WavJEPA implementation](https://github.com/labhamlet/wavjepa)
 - [Pinned wavJEPA encoder](https://huggingface.co/labhamlet/wavjepa-base/tree/6be4a5093f6c9adbbd55e00b6e5b8f067aa03345)
