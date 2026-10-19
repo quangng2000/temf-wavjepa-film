@@ -131,7 +131,9 @@ Its output is mean velocity, with no diffusion-score or noise-level rescaling.
 Training interpolates between clean coefficients and Gaussian noise:
 
 ```math
+\begin{aligned}
 \boxed{x_t=(1-t)c+tz,\qquad v_{\mathrm{path}}=z-c.}
+\end{aligned}
 \tag{4}
 ```
 
@@ -145,20 +147,24 @@ Let $\sigma(q)=(1+e^{-q})^{-1}$ and let $\mathcal{Q}$ denote the distribution
 of $\sigma(\xi)$ for $\xi\sim\mathcal{N}(-0.4,1)$. The released boundary schedule is
 
 ```math
+\begin{aligned}
 \rho(p)=0.9-0.8\,\sigma\!\bigl(8(p-0.6)\bigr),
 \qquad B_{\mathrm{diag}}=\lfloor B\rho(p)\rfloor.
+\end{aligned}
 \tag{5}
 ```
 
 Draw the batch's time pairs as follows; each draw is independent:
 
 ```math
+\begin{aligned}
 (t_i,r_i)=
 \begin{cases}
 (q_i,q_i),\quad q_i\sim\mathcal{Q}, & i\le B_{\mathrm{diag}},\\[3pt]
 (\max(q_i,q'_i),\min(q_i,q'_i)),\quad q_i,q'_i\sim\mathcal{Q},
   & i>B_{\mathrm{diag}}.
 \end{cases}
+\end{aligned}
 \tag{6}
 ```
 
@@ -179,12 +185,14 @@ dropout, and no teacher loss. There is no auxiliary speech-fidelity loss.
 With the released mixture schedule $m(p)=0.3-0.2p$, define
 
 ```math
+\begin{aligned}
 \bar v=\mathrm{sg}\!\left[
 \begin{cases}
 m(p)\,v_{\mathrm{path}}+\bigl(1-m(p)\bigr)u_\theta(x_t,t,t\mid y,h),
   & 0<t<1,\\[3pt]
 v_{\mathrm{path}}, & t\in\{0,1\}.
 \end{cases}\right]
+\end{aligned}
 \tag{7}
 ```
 
@@ -218,18 +226,22 @@ retained through $U^\star$. The optional discrete-branch target clamp is not use
 For each example, floor the interval only when computing its temporal weight:
 
 ```math
+\begin{aligned}
 \delta_i=\max(t_i-r_i,10^{-3}),
 \qquad w_i=\frac{1}{(1+\delta_i)\sqrt{1+\delta_i^2}}.
+\end{aligned}
 \tag{9}
 ```
 
 The scalar batch objective is
 
 ```math
+\begin{aligned}
 \boxed{
 \mathcal{L}(\theta)=\frac{1}{B}\sum_{i=1}^{B}
  w_i\,\frac{\left\|u_\theta(x_{t_i},t_i,r_i\mid y_i,h_i)-U_i^\star\right\|_2^2}{D}.
 }
+\end{aligned}
 \tag{10}
 ```
 
@@ -293,7 +305,9 @@ number of evaluations $K\ge1$, and a random seed. **Return:** restored waveform 
 For one evaluation, the complete restoration is
 
 ```math
+\begin{aligned}
 \boxed{\hat a=\mathcal{D}\!\left(z-u_{\hat\theta}(z,1,0\mid y,h);\,L\right).}
+\end{aligned}
 \tag{11}
 ```
 
