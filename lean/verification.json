@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "theorem_count": 41,
+  "lean_version": "Lean (version 4.30.0, arm64-apple-darwin24.6.0, commit d024af099ca4bf2c86f649261ebf59565dc8c622, Release)",
+  "allowed_axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "source_sha256": {
+    "Audit.lean": "b2063fd3231701421c143cfe63a280980c94807985cfa09aa70a3e9bae57af6b",
+    "Temf.lean": "1ab155a7bd897ab31ba841bff541143a0c9ec154e4013f0f97b8998e54924baa",
+    "Temf/Film.lean": "b8c73949a1eed360cf64e7595cfceea17206853c892d73212317959528ed8ae1",
+    "Temf/MeanFlow.lean": "2712e4088a2a6fafa1d99fd4bd83d9c9920a3060315ce5740b76c61226b7fa97",
+    "Temf/Objective.lean": "59b73481e0eae7dd96a666bb74dda1d5855c039baa39f2e15cf79893b1248a53",
+    "Temf/Path.lean": "4660ca72c12a2764989042f1a6ea686354cfa100e4f5e6e0367276f122196151",
+    "Temf/Schedule.lean": "a2215dcccc8246b045445f911af4bf8d034849f2827a5729704c2cf25bcb90c6",
+    "Temf/Solver.lean": "57187340658ba3e9f182425acd4d2a7903092041b2afa73c7b76d9c18ba0cdb7",
+    "Temf/Weight.lean": "793bf519fbb337ca41c04027fef2c8b1012020931c1baad42036e4ddeac5aa63",
+    "lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325",
+    "lakefile.toml": "c5641e42cbb1d99c1aa6b6d193583898e325d13ea778e103fd826a7eb673f360",
+    "lake-manifest.json": "2ebebd07838346f96068157913c4e263ccdc8db529efe8d31c07085a557b0b75",
+    "check.py": "ec59a2223f4d3d58d3a9b88cf9a53a4a994e6f66fb3e2f4309cbc5a4f61a90a2"
+  }
+}

@@ -1,6 +1,13 @@
 # TEMF + wavJEPA FiLM restoration
 
-Status: project scope established; redesigned model is not implemented or trained.
+Status: project scope and Lean proof suite established; redesigned model is not implemented or trained.
+
+## Mathematics first
+
+All formal proofs live in [`lean/`](lean/README.md), with pinned Lean/Mathlib versions
+and an axiom-auditing checker. They cover the MeanFlow identity, reverse solver,
+TEMF weights/schedules, and FiLM derivatives. See [scope](lean/SCOPE.md) for the
+assumptions and limits. CPU implementation parity comes next, before GPU experiments.
 
 ## Agreed scope
 
