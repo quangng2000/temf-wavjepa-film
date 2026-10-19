@@ -6,15 +6,21 @@ Status: project scope and Lean proof suite established; redesigned model is not 
 
 [![Animated preview of wavJEPA-conditioned FiLM scaling and shifting CNN features](docs/media/film-temf-scm-preview.gif)](docs/media/film-temf-scm-motion.mp4)
 
-**[Watch the full 88-second animation](docs/media/film-temf-scm-motion.mp4)** ·
+**[Watch the full 104-second animation](docs/media/film-temf-scm-motion.mp4)** ·
 [Download MP4](https://raw.githubusercontent.com/quangng2000/temf-wavjepa-film/main/docs/media/film-temf-scm-motion.mp4)
 
-The preview shows FiLM at the bottleneck. The full animation follows STFT and frozen
-wavJEPA features through positional time embeddings, sCM-inspired double normalization,
-FiLM modulation, TEMF velocity training with the full JVP, and reverse sampling.
-All feature values and weight updates are illustrative. The objective remains TEMF;
-the sCM contribution shown here is its conditioning approach. The Gaussian path and
-bottleneck placement illustrate design choices still to be finalized.
+The preview shows FiLM scaling and shifting a feature map. The full animation follows
+one synthetic example through positional time conditioning, sCM-inspired double
+normalization, FiLM, a TEMF velocity target with the full JVP, one weight update,
+and reverse sampling. A gold cell tracks the same location; blue and coral show
+positive and negative values.
+
+The JVP, SGD update and sampling states are computed by a small toy model.
+Frozen context stands in for wavJEPA features; these are not trained speech-model
+activations or an audio-quality result. Sampling uses the preceding state and its
+predicted velocity, with no clean target supplied. The Gaussian prior and conditioning
+placement illustrate design choices still to be finalized. See the
+[reproducible source, checks and limitations](docs/animation/README.md).
 
 ## Mathematics first
 
