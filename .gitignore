@@ -1,0 +1,30 @@
+# Python and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Local data, weights, and experiments
+data/
+datasets/
+checkpoints/
+runs/
+outputs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Credentials and machine state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
