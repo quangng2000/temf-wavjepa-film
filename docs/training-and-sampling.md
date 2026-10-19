@@ -34,7 +34,7 @@ below describe the implementation, not a validated experimental result.
 - $z\sim\mathcal{N}(0,I)$: a unit Gaussian prior with the same shape as $c$.
 - $t,r$: current and destination **flow times**, satisfying $0\le r\le t\le1$.
 - $u_\theta(x,t,r\mid y,h)$: the network's direct prediction of **mean velocity**.
-- $\operatorname{sg}(\cdot)$: stop-gradient; its argument is constant during parameter backpropagation.
+- $\mathrm{sg}(\cdot)$: stop-gradient; its argument is constant during parameter backpropagation.
 - $B$: batch size; $D$: number of real coefficient entries per example.
 - $s$: completed optimizer updates; $S$: planned total; $p=s/S$: training progress.
 
@@ -53,18 +53,18 @@ which also includes pretraining modules.
 
 ### Compressed complex STFT
 
-Let $S_a=\operatorname{STFT}(a)$. With compression exponent $\gamma=0.3$, define
+Let $S_a=\mathrm{STFT}(a)$. With compression exponent $\gamma=0.3$, define
 
-$$
+```math
 \begin{aligned}
 C_a &= |S_a|^\gamma\exp\!\bigl(\mathrm{i}\arg S_a\bigr),\\
-\mathcal{E}(a) &= \begin{bmatrix}\operatorname{Re}C_a\\ \operatorname{Im}C_a\end{bmatrix},\\
-\mathcal{D}(c;L) &= \operatorname{iSTFT}\!\left(
+\mathcal{E}(a) &= \begin{bmatrix}\mathrm{Re}C_a\\ \mathrm{Im}C_a\end{bmatrix},\\
+\mathcal{D}(c;L) &= \mathrm{iSTFT}\!\left(
   |C|^{1/\gamma}\exp\!\bigl(\mathrm{i}\arg C\bigr);\,L\right),
   \qquad C=c_{\mathrm{Re}}+\mathrm{i}c_{\mathrm{Im}}.
 \end{aligned}
 \tag{1}
-$$
+```
 
 Zero magnitude maps to zero. Training and inference share the same transform:
 512-point FFT, 160-sample hop, Hann window, centered constant padding, and normalized
@@ -76,15 +76,15 @@ STFT. Reconstruction uses the original waveform length $L$.
 The mono waveform is duplicated into the encoder's two input channels. Channel
 features are concatenated, then interpolated using the encoder's released timestamps:
 
-$$
+```math
 \begin{aligned}
 (H^{(1)},H^{(2)},\tau)
   &= \Phi_{\mathrm{Nat}}\!\left(P_{\mathrm{Nat}}([a_{\mathrm{obs}},a_{\mathrm{obs}}])\right),\\
-h &= \operatorname{sg}\!\left(
-  \operatorname{Align}_{\mathrm{STFT}}([H^{(1)};H^{(2)}],\tau)\right).
+h &= \mathrm{sg}\!\left(
+  \mathrm{Align}_{\mathrm{STFT}}([H^{(1)};H^{(2)}],\tau)\right).
 \end{aligned}
 \tag{2}
-$$
+```
 
 Here $P_{\mathrm{Nat}}$ is the pinned input processor and $\Phi_{\mathrm{Nat}}$ is
 the frozen encoder. Its input normalization does not change the waveform used by
@@ -102,16 +102,16 @@ boundaries still need real-data validation. [Encoder contract](wavjepa-nat.md) Â
 Both flow times enter the upstream SGMSE positional embedding and time MLP. Nat
 features modulate each residual block after its second GroupNorm:
 
-$$
+```math
 \begin{aligned}
-e(t,r) &= [\operatorname{PE}(t);\operatorname{PE}(r)],\\
+e(t,r) &= [\mathrm{PE}(t);\mathrm{PE}(r)],\\
 u_\theta(x,t,r\mid y,h)
-  &= \operatorname{NCSN{+}{+}}_\theta(x,y;e(t,r),h),\\
-\operatorname{FiLM}_\ell(g,h)
+  &= \mathrm{NCSN{+}{+}}_\theta(x,y;e(t,r),h),\\
+\mathrm{FiLM}_\ell(g,h)
   &= \bigl(1+\Delta\gamma_\ell(h)\bigr)\odot g+\beta_\ell(h).
 \end{aligned}
 \tag{3}
-$$
+```
 
 FiLM heads start at zero, making the initial modulation an identity. Context is
 interpolated to each block's audio-frame resolution. The time-MLP output and
@@ -130,10 +130,10 @@ Its output is mean velocity, with no diffusion-score or noise-level rescaling.
 
 Training interpolates between clean coefficients and Gaussian noise:
 
-$$
+```math
 \boxed{x_t=(1-t)c+tz,\qquad v_{\mathrm{path}}=z-c.}
 \tag{4}
-$$
+```
 
 At $t=0$ the path is clean; at $t=1$ it is Gaussian noise. The degraded coefficients
 $y$ remain a separate condition. Inference integrates in the reverse direction,
@@ -144,15 +144,15 @@ from $t=1$ to $t=0$.
 Let $\sigma(q)=(1+e^{-q})^{-1}$ and let $\mathcal{Q}$ denote the distribution
 of $\sigma(\xi)$ for $\xi\sim\mathcal{N}(-0.4,1)$. The released boundary schedule is
 
-$$
+```math
 \rho(p)=0.9-0.8\,\sigma\!\bigl(8(p-0.6)\bigr),
 \qquad B_{\mathrm{diag}}=\lfloor B\rho(p)\rfloor.
 \tag{5}
-$$
+```
 
 Draw the batch's time pairs as follows; each draw is independent:
 
-$$
+```math
 (t_i,r_i)=
 \begin{cases}
 (q_i,q_i),\quad q_i\sim\mathcal{Q}, & i\le B_{\mathrm{diag}},\\[3pt]
@@ -160,7 +160,7 @@ $$
   & i>B_{\mathrm{diag}}.
 \end{cases}
 \tag{6}
-$$
+```
 
 Diagonal examples learn local velocity. As training progresses, their allocation
 decreases and interval examples become more common. The integer allocation uses
@@ -178,15 +178,15 @@ dropout, and no teacher loss. There is no auxiliary speech-fidelity loss.
 
 With the released mixture schedule $m(p)=0.3-0.2p$, define
 
-$$
-\bar v=\operatorname{sg}\!\left[
+```math
+\bar v=\mathrm{sg}\!\left[
 \begin{cases}
 m(p)\,v_{\mathrm{path}}+\bigl(1-m(p)\bigr)u_\theta(x_t,t,t\mid y,h),
   & 0<t<1,\\[3pt]
 v_{\mathrm{path}}, & t\in\{0,1\}.
 \end{cases}\right]
 \tag{7}
-$$
+```
 
 The diagonal prediction participates in the numerical target but receives no
 parameter gradient through that target.
@@ -196,16 +196,16 @@ parameter gradient through that target.
 For interval examples, differentiate along the state and current-time direction,
 holding destination time and conditioning fixed:
 
-$$
+```math
 \begin{aligned}
 J_\theta
-  &= \operatorname{JVP}_{(x,t,r)}[u_\theta]\!\left[(\bar v,1,0)\right]\\
+  &= \mathrm{JVP}_{(x,t,r)}[u_\theta]\!\left[(\bar v,1,0)\right]\\
   &= D_xu_\theta(x_t,t,r\mid y,h)\,\bar v
      +\partial_tu_\theta(x_t,t,r\mid y,h),\\[3pt]
-U^\star &= \operatorname{sg}\!\left[\bar v-(t-r)J_\theta\right].
+U^\star &= \mathrm{sg}\!\left[\bar v-(t-r)J_\theta\right].
 \end{aligned}
 \tag{8}
-$$
+```
 
 The JVP is the **complete state-plus-time derivative**, not just the time partial.
 The implementation sets $J_\theta=0$ when `torch.isclose(r, t)` is true, using
@@ -217,21 +217,21 @@ retained through $U^\star$. The optional discrete-branch target clamp is not use
 
 For each example, floor the interval only when computing its temporal weight:
 
-$$
+```math
 \delta_i=\max(t_i-r_i,10^{-3}),
 \qquad w_i=\frac{1}{(1+\delta_i)\sqrt{1+\delta_i^2}}.
 \tag{9}
-$$
+```
 
 The scalar batch objective is
 
-$$
+```math
 \boxed{
 \mathcal{L}(\theta)=\frac{1}{B}\sum_{i=1}^{B}
  w_i\,\frac{\left\|u_\theta(x_{t_i},t_i,r_i\mid y_i,h_i)-U_i^\star\right\|_2^2}{D}.
 }
 \tag{10}
-$$
+```
 
 Reduction averages all real/imaginary coefficient entries, then averages across
 examples. Weights are not normalized by their batch mean. Parameter gradients
@@ -246,22 +246,22 @@ head needs no coefficient-head $1/t^2$ conversion.
 **Given:** an aligned batch, current parameters $\theta$, optimizer state, and progress $p=s/S$.
 **Return:** updated restoration parameters and EMA; the Nat encoder stays fixed.
 
-$$
+```math
 \begin{array}{r l}
 1. & (c,y)\gets\bigl(\mathcal{E}(a_{\mathrm{clean}}),\mathcal{E}(a_{\mathrm{obs}})\bigr)\\[4pt]
-2. & h\gets\operatorname{FrozenNatContext}(a_{\mathrm{obs}})\\[4pt]
-3. & (t,r)\gets\operatorname{SampleTimes}(B,p)\quad\text{using (5)--(6)}\\[4pt]
+2. & h\gets\mathrm{FrozenNatContext}(a_{\mathrm{obs}})\\[4pt]
+3. & (t,r)\gets\mathrm{SampleTimes}(B,p)\quad\text{using (5)--(6)}\\[4pt]
 4. & z\sim\mathcal{N}(0,I),\quad x_t\gets(1-t)c+tz,\quad v_{\mathrm{path}}\gets z-c\\[4pt]
-5. & \bar v\gets\operatorname{ReferenceVelocity}(\theta,x_t,t,y,h,p)\quad\text{using (7)}\\[4pt]
-6. & U^\star\gets\operatorname{sg}\!\left[\bar v-(t-r)J_\theta\right]\quad\text{using (8)}\\[4pt]
-7. & \mathcal{L}\gets\operatorname{WeightedVelocityError}(\theta,U^\star)\quad\text{using (9)--(10)}\\[4pt]
+5. & \bar v\gets\mathrm{ReferenceVelocity}(\theta,x_t,t,y,h,p)\quad\text{using (7)}\\[4pt]
+6. & U^\star\gets\mathrm{sg}\!\left[\bar v-(t-r)J_\theta\right]\quad\text{using (8)}\\[4pt]
+7. & \mathcal{L}\gets\mathrm{WeightedVelocityError}(\theta,U^\star)\quad\text{using (9)--(10)}\\[4pt]
 8. & g\gets\nabla_\theta\mathcal{L}\quad\text{after clearing accumulated gradients}\\[4pt]
 9. & \text{Reject the update if the loss, diagnostics, or gradients are nonfinite.}\\[4pt]
-10. & \text{Record }\|g\|_2;\quad g\gets\operatorname{ClipNorm}(g,1)\\[4pt]
-11. & \theta\gets\operatorname{AdamWStep}(\theta,g)\quad\text{with optimizer state}\\[4pt]
+10. & \text{Record }\|g\|_2;\quad g\gets\mathrm{ClipNorm}(g,1)\\[4pt]
+11. & \theta\gets\mathrm{AdamWStep}(\theta,g)\quad\text{with optimizer state}\\[4pt]
 12. & \theta_{\mathrm{EMA}}\gets0.999\,\theta_{\mathrm{EMA}}+0.001\,\theta
 \end{array}
-$$
+```
 
 The algorithm shows current default optimizer/clipping/EMA choices, which remain
 configurable. Input derivatives are deterministic and computed in FP32. EMA is
@@ -278,24 +278,24 @@ validation runs every 5,000. These are run settings, not requirements of TEMF.
 **Given:** degraded audio $a_{\mathrm{obs}}$, explicit raw or EMA weights $\hat\theta$,
 number of evaluations $K\ge1$, and a random seed. **Return:** restored waveform $\hat a$.
 
-$$
+```math
 \begin{array}{r l}
-1. & y\gets\mathcal{E}(a_{\mathrm{obs}}),\quad h\gets\operatorname{FrozenNatContext}(a_{\mathrm{obs}})\\[4pt]
+1. & y\gets\mathcal{E}(a_{\mathrm{obs}}),\quad h\gets\mathrm{FrozenNatContext}(a_{\mathrm{obs}})\\[4pt]
 2. & x^{(0)}\gets z,\quad z\sim\mathcal{N}(0,I)\quad\text{using the supplied seed}\\[4pt]
 3. & t_k\gets1-k/K,\quad k=0,\ldots,K\\[4pt]
-4. & \textbf{for }k=0,\ldots,K-1:\\[4pt]
+4. & \mathbf{for}\;k=0,\ldots,K-1:\\[4pt]
 5. & \quad v^{(k)}\gets u_{\hat\theta}(x^{(k)},t_k,t_{k+1}\mid y,h)\\[4pt]
 6. & \quad x^{(k+1)}\gets x^{(k)}-(t_k-t_{k+1})v^{(k)}\\[4pt]
-7. & \textbf{return }\hat a=\mathcal{D}(x^{(K)};\operatorname{length}(a_{\mathrm{obs}}))
+7. & \mathbf{return}\;\hat a=\mathcal{D}(x^{(K)};\mathrm{length}(a_{\mathrm{obs}}))
 \end{array}
-$$
+```
 
 For one evaluation, the complete restoration is
 
-$$
+```math
 \boxed{\hat a=\mathcal{D}\!\left(z-u_{\hat\theta}(z,1,0\mid y,h);\,L\right).}
 \tag{11}
-$$
+```
 
 The CNN predicts the velocity to subtract, not the endpoint itself. Sampling uses
 no clean target, JVP, loss, or backpropagation. Nat context is computed once and
