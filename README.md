@@ -2,6 +2,20 @@
 
 Status: project scope and Lean proof suite established; redesigned model is not implemented or trained.
 
+## Animation
+
+[![Animated preview of wavJEPA-conditioned FiLM scaling and shifting CNN features](docs/media/film-temf-scm-preview.gif)](docs/media/film-temf-scm-motion.mp4)
+
+**[Watch the full 88-second animation](docs/media/film-temf-scm-motion.mp4)** ·
+[Download MP4](https://raw.githubusercontent.com/quangng2000/temf-wavjepa-film/main/docs/media/film-temf-scm-motion.mp4)
+
+The preview shows FiLM at the bottleneck. The full animation follows STFT and frozen
+wavJEPA features through positional time embeddings, sCM-inspired double normalization,
+FiLM modulation, TEMF velocity training with the full JVP, and reverse sampling.
+All feature values and weight updates are illustrative. The objective remains TEMF;
+the sCM contribution shown here is its conditioning approach. The Gaussian path and
+bottleneck placement illustrate design choices still to be finalized.
+
 ## Mathematics first
 
 All formal proofs live in [`lean/`](lean/README.md), with pinned Lean/Mathlib versions
@@ -78,4 +92,6 @@ not launch training, create resources, or change any running process.
 - [TEMF source at the pinned commit](https://github.com/yuanpengtu/TEMF/blob/78c531cca978a23113b262cd0b6bede2197b1916/src/training/loss.py)
 - [TEMF paper](https://openaccess.thecvf.com/content/CVPR2026/papers/Tu_Temporal_Equilibrium_MeanFlow_Bridging_the_Scale_Gap_for_One-Step_Generation_CVPR_2026_paper.pdf)
 - [FiLM paper](https://arxiv.org/abs/1709.07871)
+- [sCM conditioning and stabilization](https://arxiv.org/html/2410.11081v2#S4.SS1)
+- [Bottleneck conditioning for speech enhancement](https://arxiv.org/abs/2606.22591)
 - [Pinned wavJEPA encoder](https://huggingface.co/labhamlet/wavjepa-base/tree/6be4a5093f6c9adbbd55e00b6e5b8f067aa03345)
