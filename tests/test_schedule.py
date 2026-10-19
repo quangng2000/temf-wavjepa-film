@@ -4,8 +4,9 @@ from pathlib import Path
 import pytest
 import torch
 
-from src.flow.schedule import sample_times, schedule, temporal_weight
-from src.flow.target import corrected_target
+from src.upstream.temf import create_temf
+from tests.reference.legacy_schedule import sample_times
+from tests.reference.legacy_target import corrected_target
 from tests.test_target import AnalyticVelocity
 
 REFERENCE = json.loads((Path(__file__).parent / "reference/temf.json").read_text())
@@ -14,13 +15,16 @@ REFERENCE = json.loads((Path(__file__).parent / "reference/temf.json").read_text
 def test_weights_match_pinned_upstream_numeric_reference():
     current = torch.tensor(REFERENCE["deltas"], dtype=torch.float64)
     expected = torch.tensor(REFERENCE["weights"], dtype=torch.float64)
-    torch.testing.assert_close(temporal_weight(current, torch.zeros_like(current)),
-                               expected, rtol=1e-14, atol=1e-14)
+    actual = create_temf(100).compute_temporal_equilibrium_weight(
+        current, torch.zeros_like(current))
+    torch.testing.assert_close(actual, expected, rtol=1e-14, atol=1e-14)
 
 
 @pytest.mark.parametrize("index", range(len(REFERENCE["steps"])))
 def test_schedules_match_pinned_upstream_numeric_reference(index):
-    boundary, mix = schedule(REFERENCE["steps"][index], REFERENCE["total"])
+    obj = create_temf(REFERENCE["total"])
+    boundary = obj.get_ratio(obj.cfg.boundary_ratio, REFERENCE["steps"][index])
+    mix = obj._get_cfg_params(REFERENCE["steps"][index]).mix_ratio
     assert boundary == pytest.approx(REFERENCE["boundary"][index], abs=1e-14)
     assert mix == pytest.approx(REFERENCE["mix"][index], abs=1e-14)
 

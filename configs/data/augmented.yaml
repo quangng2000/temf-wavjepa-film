@@ -1,0 +1,60 @@
+# Opt-in baseline, not an exact reproduction of a paper's degradation distribution.
+_target_: src.data.online.OnlineDataModule
+_recursive_: false
+train_manifest: ???
+val_manifest: ???
+batch_size: 4
+samples: 64000
+workers: 0
+seed: ${seed}
+augmentation:
+  noise_manifest: ???
+  rooms_manifest: ???
+  recipe:
+    room_probability: 0.5
+    noise:
+      min_snr_db: 10.0
+      max_snr_db: 30.0
+      noise_rms: relative
+      p: 0.8
+    effects:
+      - _target_: audiomentations.HighPassFilter
+        min_cutoff_freq: 80.0
+        max_cutoff_freq: 300.0
+        zero_phase: true
+        p: 0.25
+      - _target_: audiomentations.LowPassFilter
+        min_cutoff_freq: 3000.0
+        max_cutoff_freq: 7500.0
+        zero_phase: true
+        p: 0.25
+      - _target_: audiomentations.BandStopFilter
+        min_center_freq: 500.0
+        max_center_freq: 3500.0
+        min_bandwidth_fraction: 0.05
+        max_bandwidth_fraction: 0.2
+        zero_phase: true
+        p: 0.1
+      - _target_: audiomentations.ClippingDistortion
+        min_percentile_threshold: 0
+        max_percentile_threshold: 5
+        p: 0.1
+      - _target_: audiomentations.TanhDistortion
+        min_distortion: 0.05
+        max_distortion: 0.2
+        p: 0.1
+      - _target_: audiomentations.TimeMask
+        min_band_part: 0.0025
+        max_band_part: 0.02
+        fade_duration: 0.002
+        p: 0.1
+      - _target_: audiomentations.Mp3Compression
+        min_bitrate: 32
+        max_bitrate: 96
+        backend: fast-mp3-augment
+        preserve_delay: false
+        p: 0.2
+      - _target_: audiomentations.Gain
+        min_gain_db: -6
+        max_gain_db: 3
+        p: 0.3

@@ -3,7 +3,7 @@
 import torch
 from torch.autograd.functional import jvp
 
-from src.flow.schedule import expand_time
+from tests.reference.legacy_schedule import expand_time
 
 
 def reference_velocity(net, path, times, condition, mix):

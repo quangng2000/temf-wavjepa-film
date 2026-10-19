@@ -1,0 +1,51 @@
+--- upstream/ncsnpp_v2.py
++++ lab/ncsnpp_v2.py
+@@ -238,7 +238,7 @@
+         self.all_modules = nn.ModuleList(modules)
+         
+ 
+-    def forward(self, x, y, t):
++    def forward(self, x, y, t, embedding=None, context=None):
+         # timestep/noise_level embedding; only for continuous training
+         modules = self.all_modules
+         m_idx = 0
+@@ -246,7 +246,11 @@
+         # Convert real and imaginary parts of (x,y) into four channel dimensions
+         x = torch.cat((x.real, x.imag, y.real, y.imag), dim=1)
+ 
+-        if self.embedding_type == 'fourier':
++        # Lab adapter: supply two-time features while retaining the upstream U-Net.
++        if embedding is not None:
++            temb = embedding
++            m_idx = int(self.embedding_type == 'fourier')
++        elif self.embedding_type == 'fourier':
+             # Gaussian Fourier features embeddings.
+             used_sigmas = t
+             temb = modules[m_idx](torch.log(used_sigmas))
+@@ -265,6 +269,9 @@
+         m_idx += 1
+         temb = modules[m_idx](self.act(temb))
+         m_idx += 1
++
++        if context is not None:
++            temb = (temb, context)
+ 
+         # Downsampling block
+         input_pyramid = None
+--- upstream/shared.py
++++ lab/shared.py
+@@ -4,7 +4,7 @@
+ import torch
+ import torch.nn as nn
+ 
+-from sgmse.util.registry import Registry
++from .registry import Registry
+ 
+ 
+ BackboneRegistry = Registry("Backbone")
+--- upstream/ncsnpp_utils/op/__init__.py
++++ lab/ncsnpp_utils/op/__init__.py
+@@ -1,2 +1,2 @@
+-from .upfirdn2d import upfirdn2d
+-# from .upfirdn2d_native import upfirdn2d+# Use the upstream native PyTorch operator on every device; no JIT compilation.
++from .upfirdn2d_native import upfirdn2d

@@ -1,0 +1,27 @@
+{
+  "repository": "https://github.com/sp-uhh/sgmse",
+  "commit": "1961cf4483e37df1bb92ccf0eb8b28bf6f44cb0e",
+  "original_sha256": {
+    "sgmse/backbones/ncsnpp_v2.py": "53e83bccd8fb00ea6afc4f5433c79c94137763bf8fd103c8d26d680ad23631c3",
+    "sgmse/backbones/shared.py": "fa84028375eeaf86ec3d846322c236e704a4a45cdf0f7d0d07d958c613a26917",
+    "sgmse/backbones/ncsnpp_utils/layers.py": "1bc76e88c0f599016f1add9adb3646d922f1ecb10cbbd1876d05b82060ad568a",
+    "sgmse/backbones/ncsnpp_utils/layerspp.py": "55714531661209ede4c30df64f8660abcf21addc09d6ccf947911dd7e8e8da50",
+    "sgmse/backbones/ncsnpp_utils/normalization.py": "0195a2f50be2df649e823a6a2bda91090d54f6c7ab480bbda99376898395c447",
+    "sgmse/backbones/ncsnpp_utils/up_or_down_sampling.py": "60fcb69165ab6990676c3d232e7bed936c6b9330e1ff8d59f48293a84784649c",
+    "sgmse/backbones/ncsnpp_utils/op/upfirdn2d_native.py": "141d9338787b06014813583dd3fd848637190908c8eb3c687d39799e1ac13e98",
+    "sgmse/util/registry.py": "89dc143d28c450a8f8c1edb65ee38662f0958ed1fd6fc1875093787165fb2a9a"
+  },
+  "installed_sha256": {
+    "ncsnpp_v2.py": "670093b45b20485469ad24ff5ba14f058f150fc0229251df4b883babb3695c39",
+    "registry.py": "89dc143d28c450a8f8c1edb65ee38662f0958ed1fd6fc1875093787165fb2a9a",
+    "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "shared.py": "6dc0ba129e0b63fa81b98320d698f655eca84b4f00d19856021045aafb2a71f4",
+    "ncsnpp_utils/layerspp.py": "55714531661209ede4c30df64f8660abcf21addc09d6ccf947911dd7e8e8da50",
+    "ncsnpp_utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ncsnpp_utils/up_or_down_sampling.py": "60fcb69165ab6990676c3d232e7bed936c6b9330e1ff8d59f48293a84784649c",
+    "ncsnpp_utils/layers.py": "1bc76e88c0f599016f1add9adb3646d922f1ecb10cbbd1876d05b82060ad568a",
+    "ncsnpp_utils/normalization.py": "0195a2f50be2df649e823a6a2bda91090d54f6c7ab480bbda99376898395c447",
+    "ncsnpp_utils/op/__init__.py": "d06614bcd566fb766cf7ebc599417ee8014be15eb02936bc9c74b0b45a63a1e3",
+    "ncsnpp_utils/op/upfirdn2d_native.py": "141d9338787b06014813583dd3fd848637190908c8eb3c687d39799e1ac13e98"
+  }
+}

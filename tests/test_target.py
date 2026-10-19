@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from src.flow.target import corrected_target, reference_velocity
+from tests.reference.legacy_target import corrected_target, reference_velocity
 
 
 class AnalyticVelocity(nn.Module):

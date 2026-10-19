@@ -3,18 +3,20 @@
 import torch
 from lightning import LightningModule
 
+from src.audio.metrics import SpeechMetrics
 from src.flow.solver import solve
 
 
 class RestorationModule(LightningModule):
-    def __init__(self, net, spectrum, conditioner, objective, optimizer):
+    def __init__(self, net, spectrum, conditioner, objective, optimizer, audio_metrics=True):
         super().__init__()
         self.net, self.spectrum, self.conditioner = net, spectrum, conditioner
         self.objective, self.optimizer_factory = objective, optimizer
         self.run_config = {}
+        self.audio_metrics = SpeechMetrics() if audio_metrics else None
         self.recipe = dict(network=net.recipe, spectrum=spectrum.recipe,
                            conditioner=conditioner.recipe, total_updates=objective.total_updates,
-                           objective="temf-continuous-pinned-v1")
+                           objective=objective.recipe)
 
     def setup(self, stage=None):
         if self.spectrum.recipe["sample_rate"] != 16000:
@@ -46,15 +48,28 @@ class RestorationModule(LightningModule):
     def validation_step(self, batch, batch_idx):
         clean, observed, context = self.encode_batch(batch)
         restored = solve(self.net, (observed, context), nfe=1, seed=1000 + batch_idx)
+        if self.audio_metrics is not None:
+            self.log_audio_metrics(restored, batch)
         self.log("val/coefficient_mse", (restored - clean).square().mean(),
                  batch_size=len(clean), sync_dist=True)
         self.log("val/input_coefficient_mse", (observed - clean).square().mean(),
                  batch_size=len(clean), sync_dist=True)
 
+    def log_audio_metrics(self, restored, batch):
+        waveform = self.spectrum.decode(restored, batch["clean"].shape[-1])
+        if not torch.isfinite(waveform).all():
+            raise FloatingPointError("Nonfinite validation waveform")
+        self.audio_metrics.update(waveform, batch["observed"], batch["clean"])
+        self.log("val/stoi_restored", self.audio_metrics.restored, on_epoch=True)
+        self.log("val/stoi_input", self.audio_metrics.observed, on_epoch=True)
+
     def on_save_checkpoint(self, checkpoint):
+        checkpoint["lab_format"] = "sgmse-temf-v2"
         checkpoint["lab_recipe"] = self.recipe
         checkpoint["run_config"] = self.run_config
 
     def on_load_checkpoint(self, checkpoint):
+        if checkpoint.get("lab_format") != "sgmse-temf-v2":
+            raise ValueError("Old lab checkpoint format requires explicit migration")
         if checkpoint.get("lab_recipe") != self.recipe:
             raise ValueError("Checkpoint recipe mismatch; explicit migration is required")

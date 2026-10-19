@@ -1,42 +1,29 @@
-"""Velocity-space TEMF loss with unit branch weights, no CFG or auxiliary losses."""
-
+"""Small audio adapter around the pinned authors' TEMFLoss.forward."""
 import torch
 
-from src.flow.schedule import expand_time, sample_times, schedule, temporal_weight
-from src.flow.target import corrected_target, reference_velocity
+from src.flow.interface import AudioCondition, AudioVelocity
+from src.flow.telemetry import TargetObserver
+from src.upstream.source import COMMIT
+from src.upstream.temf import create_temf
 
 
 class TEMFObjective:
+    recipe = f"authors-temf-continuous-{COMMIT}"
+
     def __init__(self, total_updates=300000):
         if total_updates < 1:
             raise ValueError("total_updates must be positive")
         self.total_updates = total_updates
+        self.upstream = create_temf(total_updates)
+        self.observer = TargetObserver(self.upstream)
 
-    def __call__(self, net, batch, step, generator=None):
+    def __call__(self, net, batch, step):
         clean, observed, context = batch
-        boundary, mix = schedule(step, self.total_updates)
-        times = sample_times(clean, boundary, generator)
-        noise = torch.randn(clean.shape, device=clean.device,
-                            dtype=clean.dtype, generator=generator)
-        current = expand_time(times[0], clean)
-        state = (1 - current) * clean + current * noise
-        condition = observed, context
-        reference = reference_velocity(net, (state, noise - clean), times, condition, mix)
-        target, derivative, correction = corrected_target(net, state, times, condition, reference)
-        prediction = net(state, *times, condition)
-        error = (prediction - target).square().flatten(1).mean(1)
-        weight = temporal_weight(*times)
-        metrics = diagnostics(error, target, derivative, correction)
-        metrics.update(weight=weight.mean(), interval=(times[0] - times[1]).mean())
-        metrics.update(boundary_requested=clean.new_tensor(boundary))
-        metrics.update(boundary_actual=torch.isclose(*times).float().mean())
-        return (weight * error).mean(), metrics
-
-
-def diagnostics(error, target, derivative, correction):
-    return {
-        "raw_loss": error.mean().detach(),
-        "target_rms": target.square().mean().sqrt(),
-        "jvp_rms": derivative.square().mean().sqrt(),
-        "correction_rms": correction.square().mean().sqrt(),
-    }
+        result = self.upstream(AudioVelocity(net), clean.unsqueeze(1),
+                               AudioCondition(observed, context), cur_step=step)
+        metrics = {key: value.detach().mean() for key, value in result.items()}
+        metrics.update(self.observer.metrics)
+        metrics["raw_loss"] = (result["total"] / result["temporal_weight"]).detach().mean()
+        metrics["boundary_actual"] = torch.isclose(result["delta"],
+                                                  torch.zeros_like(result["delta"])).float().mean()
+        return result["total"].mean(), metrics

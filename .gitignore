@@ -32,3 +32,5 @@ outputs/
 
 # Lean build cache
 .lake/
+
+/.cache/

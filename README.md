@@ -2,7 +2,10 @@
 
 Status: Lightning/Hydra training scaffold implemented and CPU smoke-tested; no
 full model training or real-data quality result yet. The default restoration
-network has **303,323,650 trainable parameters**, excluding frozen WavJEPA-Nat.
+network adapts **SGMSE NCSN++** and has **325,497,126 trainable parameters**,
+excluding frozen WavJEPA-Nat. TEMF executes the pinned authors’ code; EMA uses
+PyTorch `AveragedModel`, and intelligibility evaluation uses TorchMetrics/pystoi.
+See [third-party sources and exact adaptations](third_party/README.md).
 
 The selected frozen conditioner is now **`labhamlet/wavjepa-nat-base`**, pinned to
 `15d95ff67fa98117b17e83a1653bbca97877ff6f`. See the
@@ -16,16 +19,20 @@ Nat weights, checkpoint/resume, and raw/EMA sampling. The layout follows
 [lightning-hydra-template](https://github.com/ashleve/lightning-hydra-template).
 
 ```sh
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,augment]'
+python -m src.upstream.fetch
 TORCH_DEVICE_BACKEND_AUTOLOAD=0 python -m pytest
 TORCH_DEVICE_BACKEND_AUTOLOAD=0 python -m src.train experiment=smoke
 ```
 
-Run these inside an isolated Python 3.11/3.12 environment. The smoke experiment
+Run these inside an isolated Python 3.11/3.12 environment. The explicit fetch command
+caches checksum-verified TEMF source; it downloads no weights. The smoke experiment
 uses synthetic data and a tiny fixture network on CPU, with no weight downloads.
 Real training requires explicit paired-data manifests and the pinned Nat weights.
-The scaffold does not generate the paper's on-the-fly audio augmentations or
-control the existing RMFSR training process.
+An opt-in [library-backed degradation pipeline](docs/augmentation.md) generates
+training pairs from clean speech, noise and a paired room bank. Its configurable
+baseline is not the paper's exact augmentation recipe. Prepared pairs remain the
+default. The scaffold does not control the existing RMFSR training process.
 
 ## Animation
 
@@ -75,12 +82,13 @@ These checks establish implementation behavior, not restoration quality.
 - Keep the selected **WavJEPA-Nat encoder frozen** in evaluation mode.
 - Use WavJEPA-Nat features to condition restoration through trainable **FiLM** adapters.
 - Predict the **mean velocity directly**, rather than converting a clean-coefficient prediction into velocity.
-- Implement and test TEMF's objective and time sampling against the pinned authors' code.
+- Execute the pinned TEMF authors' objective and sampler through an audio interface.
+- Reuse SGMSE NCSN++ layers and architecture, adding two-time controls and Nat FiLM.
 
 Count the selected Nat inference path separately from the approximately 300 million
 trainable restoration parameters. The former mono encoder's 89,280,768-parameter
 count and combined 389M estimate do not establish the Nat model's count. The lab's
-303,323,650 trainable parameters include its backbone and adapters; the upstream
+325,497,126 trainable parameters include its backbone and adapters; the upstream
 checkpoint also contains pretraining modules unused by feature extraction.
 
 ## Implemented signal path
@@ -96,8 +104,8 @@ checkpoint also contains pretraining modules unused by feature extraction.
 7. Decompress coefficients and reconstruct the waveform with inverse STFT.
 
 FiLM starts as an identity modulation: `(1 + scale) * features + shift`,
-with zero-initialized final scale/shift projections. The baseline applies it in
-every residual block. Placement and normalization remain experimental choices;
+with zero-initialized final scale/shift projections. The adapter applies it after
+the second GroupNorm in every upstream residual block. Placement and normalization remain experimental choices;
 they are not established quality improvements.
 
 ## Training and sampling pseudocode
@@ -189,42 +197,30 @@ def D(coefficients, original_length):
     S = polar(abs(C)**(1 / 0.3), angle(C))    # inverse compression, preserving phase
     return inverse_STFT(S, config=stft_config, length=original_length)
 
-def pnorm(q):
-    return q / sqrt(mean_over_channels(q*q, keepdim=True) + norm_epsilon)
-
 def U(theta, x, y, t, r, h):
-    e = concat(positional_sincos(t), positional_sincos(r))
-    H = theta.stem(concat_channels(x, y))
-
-    for block in theta.restoration_blocks:
-        a_t, b_t = split(block.time_MLP(e))
-        G = frame_group_norm(H)
-        G = pnorm(a_t) * G + pnorm(b_t)      # broadcast over frequency/audio frames
-
-        if block.uses_FiLM:
-            h_aligned = align_audio_frames(h, block.audio_frame_positions)
-            context = block.adapter(h_aligned)  # trainable; do NOT detach this
-            delta_gamma, beta = split(block.FiLM_head(context))
-            G = (1 + delta_gamma) * G + beta    # broadcast over frequency, not time
-
-        H = block.residual_update(H, G)
-
-    return theta.velocity_head(H)            # velocity, not clean coefficients
+    # Reuse SGMSE's positional helper and time MLP; supply both flow times.
+    e = concat(sgmse_positional(t, nf // 2), sgmse_positional(r, nf // 2))
+    return adapted_sgmse_ncsnpp(x, y, embedding=e, nat_context=h)
 ```
 
-This block layout is schematic; [`configs/model/temf.yaml`](configs/model/temf.yaml)
-specifies the implemented backbone dimensions and normalization groups.
-`frame_group_norm` groups channels/frequencies
-within an audio frame; `pnorm` normalizes each time-control vector to approximately
-unit RMS. Fixed
-sin/cos frequencies are not learned parameters. The animation uses 32 angular
-frequencies per flow time, ranging from 1 to 0.0001. This is **sCM-inspired conditioning**;
-it does not replace the TEMF objective with sCM's objective or TrigFlow path.
+The executable backbone is [`src/models/network.py`](src/models/network.py), backed
+by pinned SGMSE NCSN++ source. It downsamples both frequency and audio time, pads
+those dimensions to compatible sizes, and crops the final output back. Its output
+is interpreted as mean velocity, not a diffusion score. There is no division by
+noise level in this adapter.
 
-Initialize the FiLM heads' final projections to zero so `delta_gamma = beta = 0`
-initially. Freeze only WavJEPA-Nat; the adapters and FiLM heads remain trainable.
-The pseudocode does not claim streaming causality: alignment, padding, context,
-and receptive fields must be specified before making a latency claim.
+The upstream time MLP and each residual time projection use PyTorch `RMSNorm`
+(`eps=1e-4`, no affine weights). Nat FiLM follows each residual block's second
+GroupNorm, with context interpolated to that block's audio-frame resolution.
+This is a documented conditioning adaptation, **not an exact sCM architecture**.
+Fixed positional frequencies come from SGMSE's helper; no Gaussian width-16
+embedding is used. The new backbone/EMA format cannot resume the earlier lab
+U-Net or production RMFSR checkpoints.
+
+The convolution, attention, skip and FIR-resampling calculations remain upstream
+code. The configuration uses only bottleneck attention and native PyTorch FIR
+operators. This model is not causal, and there is no real-time latency claim.
+The animation predates this backbone change and illustrates the method only.
 
 ### TEMF time sampling and schedules
 

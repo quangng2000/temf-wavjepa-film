@@ -6,6 +6,8 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
+from src.upstream.source import HASHES, read_source
+
 
 def validate_config(cfg):
     if cfg.fixture != ("Synthetic" in cfg.data._target_):
@@ -23,6 +25,8 @@ def train(cfg):
     torch.set_num_threads(cfg.cpu_threads)
     data = instantiate(cfg.data)
     data.setup("fit")  # Validate manifests before model allocation/download.
+    for name in HASHES:
+        read_source(name)  # Reject missing/tampered TEMF source before large allocation.
     model = instantiate(cfg.model)
     model.run_config = OmegaConf.to_container(cfg, resolve=True)
     callbacks = [instantiate(value) for value in cfg.callbacks.values() if value is not None]

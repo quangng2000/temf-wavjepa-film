@@ -16,12 +16,16 @@ from src.flow.solver import solve
 def load_model(path, weights, device):
     # Lightning checkpoints include Python state: accept only your own trusted files.
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    if checkpoint.get("lab_format") != "sgmse-temf-v2":
+        raise ValueError("Old lab checkpoint format requires explicit migration")
     model = instantiate(OmegaConf.create(checkpoint["run_config"]["model"]))
     model.on_load_checkpoint(checkpoint)
     model.conditioner.load(device)
     model.load_state_dict(checkpoint["state_dict"], strict=True)
     if weights == "ema":
-        shadow = checkpoint["callbacks"]["restoration_ema"]["shadow"]
+        averaged = checkpoint["callbacks"]["restoration_ema"]["averaged"]
+        shadow = {key.removeprefix("module."): value for key, value in averaged.items()
+                  if key.startswith("module.")}
         model.net.load_state_dict(shadow, strict=True)
     elif weights != "raw":
         raise ValueError("weights must be raw or ema")

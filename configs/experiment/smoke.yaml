@@ -7,11 +7,11 @@ total_updates: 10
 cpu_threads: 2
 model:
   net:
-    channels: [8, 16]
-    blocks: [1, 1]
+    nf: 8
+    channel_mult: [1, 2]
+    blocks: 1
     context_width: 16
-    time_width: 32
-    groups: 4
+  audio_metrics: false
   spectrum:
     n_fft: 64
     hop: 32

@@ -1,11 +1,11 @@
 _target_: src.models.module.RestorationModule
 net:
-  _target_: src.models.network.VelocityUNet
-  channels: [128, 256, 512, 1024]
-  blocks: [2, 2, 4, 5]
+  _target_: src.models.network.NCSNppVelocity
+  nf: 256
+  channel_mult: [1, 1, 2, 2, 2, 2, 2]
+  blocks: 2
   context_width: 1536
-  time_width: 256
-  groups: 8
+  normalize_time: true
 spectrum:
   _target_: src.audio.spectrum.Spectrum
   n_fft: 512
@@ -24,3 +24,4 @@ optimizer:
   lr: 0.0001
   weight_decay: 0.01
   betas: [0.9, 0.99]
+audio_metrics: true
