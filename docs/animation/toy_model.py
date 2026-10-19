@@ -17,10 +17,10 @@ def frame_group_norm(value):
 class ToyVelocity(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = nn.Conv2d(2, 4, 3, padding=1)
+        self.conv = nn.Conv2d(4, 4, 3, padding=1)
         self.time_mlp = nn.Sequential(nn.Linear(128, 8), nn.SiLU(), nn.Linear(8, 8))
         self.film = nn.Linear(4, 8)
-        self.head = nn.Conv2d(4, 1, 1)
+        self.head = nn.Conv2d(4, 2, 1)
         self.skip = nn.Parameter(torch.tensor([0.9, -0.65]))
         self.register_buffer('frequencies', 10000 ** (-torch.arange(32) / 31))
         with torch.no_grad():

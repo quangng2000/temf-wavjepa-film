@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import torch
 from toy_model import ToyVelocity, sample
+from toy_audio import inputs, reconstruction, decode, display_planes, RATE, FFT, HOP, POWER
 
 
 def values(item):
@@ -19,13 +20,8 @@ def build():
     torch.set_num_threads(2)
     torch.set_default_dtype(torch.float64)
     torch.manual_seed(17)
-    frequency, frame = torch.meshgrid(torch.arange(12), torch.arange(24), indexing='ij')
-    clean = (torch.exp(-frequency * .11) * (.15 + .8 * torch.sin(frame * .36).square())
-             * torch.sin(frame * .55 + frequency * .43))[None, None]
-    observed = .72 * clean + .12 * torch.randn_like(clean)
+    clean, observed, context, clean_wave, damaged_wave = inputs()
     prior = .6 * torch.randn_like(clean)
-    frozen_projection = torch.randn(4, 12) / 12 ** .5
-    context = torch.tanh(torch.einsum('cf,bft->bct', frozen_projection, observed[:, 0]))
     model = ToyVelocity().double()
     t, r = clean.new_tensor(.8), clean.new_tensor(.2)
     state, analytic = (1 - t) * clean + t * prior, prior - clean
@@ -53,21 +49,26 @@ def build():
     after = model.inspect(state, observed, t, r, context)
     error_after = weight * (after['velocity'] - target).square()
     states, steps = sample(model, observed, context, prior)
+    audio = dict(clean_wave=clean_wave, damaged_wave=damaged_wave, sample_rate=RATE,
+                 fft=FFT, hop=HOP, compression=POWER, **reconstruction(states[-1]))
+    roundtrip = (decode(clean)-clean_wave).abs().max().item()
     checks = dict(jvp_fd_max_error=(jvp-difference).abs().max().item(),
                   jvp_decomposition_error=(jvp-jx-jt).abs().max().item(),
                   fixed_target_loss_before=loss.item(), fixed_target_loss_after=error_after.mean().item(),
-                  sampler_clean_target_argument=False, finite=all(torch.isfinite(x).all().item() for x in states))
+                  sampler_clean_target_argument=False, waveform_roundtrip_max_error=roundtrip,
+                  overlap_add_max_error=audio['overlap_add_max_error'].item(),
+                  finite=all(torch.isfinite(x).all().item() for x in states))
     assert checks['jvp_fd_max_error'] < 1e-6 and checks['jvp_decomposition_error'] < 1e-10
-    assert checks['fixed_target_loss_after'] < checks['fixed_target_loss_before'] and checks['finite']
+    assert checks['fixed_target_loss_after'] < checks['fixed_target_loss_before'] and checks['finite'] and roundtrip < 1e-10
     for index, step in enumerate(steps):
         assert torch.equal(states[index] + step['delta'], states[index+1])
-    return values(dict(shape=[12,24], tracked=[5,10], clean=clean, observed=observed,
+    return values(display_planes(dict(shape=[12,24], full_shape=[2,257,24], tracked=[5,10], audio=audio, clean=clean, observed=observed,
                        prior=prior, context=context, t=t, r=r, state=state, before=before, after=after,
                        diagonal=diagonal, mixed=mixed, jvp=jvp, jx=jx, jt=jt, nudged=nudged,
                        epsilon=epsilon, target=target, weight=weight, error_before=error_before,
                        error_after=error_after, weights_before=snapshots, gradients=gradients,
                        weights_after={name:p for name,p in model.named_parameters()},
-                       sampler_states=states, sampler_steps=steps, checks=checks))
+                       sampler_states=states, sampler_steps=steps, checks=checks)))
 
 
 if __name__ == '__main__':

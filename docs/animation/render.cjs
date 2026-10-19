@@ -3,17 +3,20 @@ const {once}=require('node:events'),{createCanvas}=require('@napi-rs/canvas');
 const {P,tools,sidebar}=require('./draw.cjs'),T=require('./trace.json');
 const F=require('./scenes-forward.cjs'),O=require('./scenes-objective.cjs');
 const {sampling}=require('./scenes-sampling.cjs');
-const phases=[[10,'Build a training state',F.pair],[10,'Extract CNN features',F.cnn],
+const A=require('./scenes-audio.cjs');
+const phases=[[16,'One waveform, two representations',A.opening],[10,'Build the paired clean target',A.target],
+ [10,'Build a training state',F.pair],[10,'Extract CNN features',F.cnn],
  [14,'Condition on flow time',F.time],[12,'Apply FiLM from frozen context',F.film],
  [10,'Predict interval velocity',O.velocity],[18,'Build the full JVP target',O.jvp],
- [12,'Update trainable weights',O.update],[18,'Sample without the clean target',sampling]];
+ [12,'Update trainable weights',O.update],[18,'Sample without the clean target',sampling],
+ [18,'Reconstruct the output waveform',A.reconstruction]];
 const W=1440,H=1080,FPS=24,DURATION=phases.reduce((s,p)=>s+p[0],0);
 const canvas=createCanvas(W,H),d=tools(canvas.getContext('2d'));
 function paint(seconds){
  let i=0,s=seconds;while(i<phases.length-1&&s>=phases[i][0])s-=phases[i++][0];
- d.rect(0,0,W,H,P.bg);sidebar(d,T,i===7);phases[i][2](d,s,T);
- d.text('One example: FiLM + TEMF in motion',58,49,31);
- d.text((i+1)+' / 8 · '+phases[i][1],58,89,25,P.muted);
+ d.rect(0,0,W,H,P.bg);if(i>0)sidebar(d,T,i>=9);phases[i][2](d,s,T);
+ d.text('Waveform to waveform: FiLM + TEMF',58,49,31);
+ d.text((i+1)+' / '+phases.length+' · '+phases[i][1],58,89,25,P.muted);
  d.line([[58,116],[1382,116]],P.line,2);d.line([[58,116],[58+1324*seconds/DURATION,116]],P.context,4);
  d.text('Numerical illustration · sCM-style conditioning + TEMF velocity objective',58,142,18,P.muted);
  d.line([[58,1013],[1382,1013]],P.line,1);
@@ -44,10 +47,10 @@ async function render(out){
  console.log(file);
 }
 async function main(){
- const out=path.resolve(process.env.ANIMATION_OUTPUT||path.join(__dirname,'../../outputs/film-temf-scm-v2'));
+ const out=path.resolve(process.env.ANIMATION_OUTPUT||path.join(__dirname,'../../outputs/film-temf-scm-v3'));
  fs.mkdirSync(out,{recursive:true});
  if(process.argv.includes('--previews')){
-  for(const t of [6,16,28,41,51,60,65,70,80,92,102])fs.writeFileSync(path.join(out,`preview-${t}.png`),paint(t).toBuffer('image/png'));
+  for(const t of [5,14,23,32,42,54,67,77,86,91,96,108,118,128,134,139,146])fs.writeFileSync(path.join(out,`preview-${t}.png`),paint(t).toBuffer('image/png'));
   console.log(out);return;
  }await render(out);
 }

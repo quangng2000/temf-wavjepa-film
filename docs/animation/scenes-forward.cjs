@@ -15,15 +15,15 @@ function cnn(d,s,T){
  const progress=clamp(s/6),column=Math.min(23,Math.floor(progress*24));
  const values=T.state.map((v,i)=>i%24<=column?T.before.features[i]:v);
  d.text('Convolutions read both x(t) and observed y',440,212,27);
- d.grid(T.weights_before['conv.weight'].slice(0,9),440,260,105,90,3,3,false,4);
- d.grid(T.weights_before['conv.weight'].slice(9,18),585,260,105,90,3,3,false,4);
- d.text('x kernel',440,367,19,P.muted);d.text('y kernel',585,367,19,P.muted);
+ d.grid(T.weights_before['conv.weight'].slice(0,9),440,260,105,90,3,3,false);
+ d.grid(T.weights_before['conv.weight'].slice(18,27),585,260,105,90,3,3,false);
+ d.text('x real kernel',440,367,19,P.muted);d.text('y real kernel',585,367,19,P.muted);
  d.text('Shared kernel → feature channel 1',752,304,26,P.plus);
  d.grid(values);if(s<6)d.outline(440+Math.min(21,column)*37.5,400+4*350/12,112.5,350/4,P.plus,4);
  d.flow([[328,317],[398,317],[398,575],[430,575]],s,P.plus);
  d.text('Same location · new representation',440,809,23,P.track);
  d.text('x(t): '+fmt(T.state[I])+'   →   CNN feature F: '+fmt(T.before.features[I]),440,866,29);
- d.note('The gold cell follows this location as the representation changes.');
+ d.note('Both real and imaginary planes enter the CNN; real-plane kernels shown.');
 }
 function time(d,s,T){
  const p=ease(s/5),q=ease((s-5)/5),F=T.before.features.slice(0,288),N=T.before.normalized.slice(0,288),G=T.before.timed.slice(0,288);

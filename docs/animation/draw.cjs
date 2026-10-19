@@ -22,18 +22,25 @@ function tools(c){
   }
  };
  const note=(s,y=959,color=P.muted)=>text(s,890,y,22,color,'center');
- return {c,text,line,rect,outline,dot,grid,flow,note};
+ const wave=(v,x,y,w,h,color=P.plus,progress=1,peak=null)=>{
+  peak=peak||Math.max(1e-8,...v.map(Math.abs));line([[x,y+h/2],[x+w,y+h/2]],P.line,1);
+  const count=Math.max(2,Math.floor(w)),pts=[];
+  for(let j=0;j<=count*clamp(progress);j++){const index=Math.min(v.length-1,Math.floor(j/count*(v.length-1)));pts.push([x+j/count*w,y+h/2-v[index]/peak*h*.46]);}
+  line(pts,color,2);
+ };
+ return {c,text,line,rect,outline,dot,grid,flow,note,wave};
 }
 function sidebar(d,T,inference){
  d.text('PAIR A · '+(inference?'INFERENCE':'TRAINING'),58,173,21,P.context);
- d.text('Observed y · fixed',58,213,23);d.grid(T.observed,58,244,270,145);
+ d.text('Observed y · real plane',58,213,22);d.grid(T.observed,58,244,270,145);
  d.text('Frozen context h',58,447,23,P.context);d.grid(T.context,58,480,270,95,4,24,false);
  d.text('JEPA features illustrated',58,606,18,P.muted);
  d.outline(303,422,17,18,P.context,2);d.line([[306,422],[306,416],[317,416],[317,422]],P.context,2);
  d.text(inference?'Clean target unavailable':'Training-only clean c',58,692,22,inference?P.muted:P.ink);
  if(!inference)d.grid(T.clean,58,724,270,145);
  else{d.outline(58,724,270,145,P.line,1);d.text('Not passed to sampler',193,797,21,P.muted,'center');}
- d.text('Follow the gold cell',58,930,22,P.track);d.text('Bin 6 · frame 11',58,962,20,P.muted);
+ d.text('Follow the gold cell',58,917,22,P.track);d.text('Bin 6 · frame 11',58,948,20,P.muted);
+ d.text('First 12 / 257 bins shown',58,979,17,P.muted);
  d.line([[366,173],[366,995]],P.line,1);
 }
 module.exports={P,clamp,ease,lerp,fmt,I,tools,sidebar};

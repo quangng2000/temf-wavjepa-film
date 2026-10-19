@@ -4,22 +4,33 @@ Status: project scope and Lean proof suite established; redesigned model is not 
 
 ## Animation
 
-[![Animated preview of wavJEPA-conditioned FiLM scaling and shifting CNN features](docs/media/film-temf-scm-preview.gif)](docs/media/film-temf-scm-motion.mp4)
+[![End-to-end preview: waveform representations, FiLM conditioning, and waveform reconstruction](docs/media/film-temf-scm-preview.gif)](docs/media/film-temf-scm-motion.mp4)
 
-**[Watch the full 104-second animation](docs/media/film-temf-scm-motion.mp4)** ·
+**[Watch the full end-to-end animation — 2 minutes 28 seconds](docs/media/film-temf-scm-motion.mp4)** ·
 [Download MP4](https://raw.githubusercontent.com/quangng2000/temf-wavjepa-film/main/docs/media/film-temf-scm-motion.mp4)
 
-The preview shows FiLM scaling and shifting a feature map. The full animation follows
-one synthetic example through positional time conditioning, sCM-inspired double
-normalization, FiLM, a TEMF velocity target with the full JVP, one weight update,
-and reverse sampling. A gold cell tracks the same location; blue and coral show
-positive and negative values.
+The animation follows one synthetic recording from waveform to waveform:
 
-The JVP, SGD update and sampling states are computed by a small toy model.
-Frozen context stands in for wavJEPA features; these are not trained speech-model
-activations or an audio-quality result. Sampling uses the preceding state and its
-predicted velocity, with no clean target supplied. The Gaussian prior and conditioning
-placement illustrate design choices still to be finalized. See the
+1. **Represent the damaged audio:** complex STFT coefficients and a separate frozen
+   wavJEPA context branch.
+2. **Construct the training pair:** transform the aligned clean waveform and build
+   the intermediate flow state.
+3. **Condition the CNN:** positional time embeddings, sCM-inspired double
+   normalization, and FiLM scaling and shifting from the frozen context.
+4. **Train with velocity predictions:** form the full JVP target, apply TEMF temporal
+   weighting, and update the trainable parameters.
+5. **Run inference:** sample with the observed audio and context, without a clean target.
+6. **Return to a waveform:** inverse magnitude compression, inverse FFT, windowed
+   overlap-add, and the output waveform.
+
+A gold cell follows the same location; blue and coral show positive and negative
+values. The GIF previews the input branches, FiLM, and waveform reconstruction.
+
+The STFT, JVP, SGD update, sampling states, and inverse STFT are computed by a small
+toy model using synthetic audio. A fixed waveform projection stands in for the
+frozen wavJEPA encoder; it is not run here. This is a process explanation, not an
+audio-quality result. The Gaussian prior and conditioning placement illustrate
+design choices still to be finalized. See the
 [reproducible source, checks and limitations](docs/animation/README.md).
 
 ## Mathematics first
