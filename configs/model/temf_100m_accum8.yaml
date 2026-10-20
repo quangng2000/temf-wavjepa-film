@@ -1,0 +1,8 @@
+defaults:
+  - temf_100m
+  - _self_
+
+_target_: src.models.microbatch.MicrobatchRestorationModule
+effective_batch_size: 8
+microbatch_size: 2
+microbatch_gradient_clip: 1.0

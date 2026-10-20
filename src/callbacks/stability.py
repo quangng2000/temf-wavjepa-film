@@ -16,7 +16,8 @@ class StabilityGuard(Callback):
             message = "Nonfinite gradient norm; optimizer update rejected"
             raise FloatingPointError(message) from error
         module.log("train/gradient_norm", norm, on_step=True, on_epoch=False)
-        threshold = trainer.gradient_clip_val or float("inf")
+        threshold = getattr(module, "microbatch_gradient_clip", trainer.gradient_clip_val)
+        threshold = threshold or float("inf")
         module.log("train/clipped", (norm > threshold).float(), on_step=True, on_epoch=False)
 
     def on_exception(self, trainer, module, exception):

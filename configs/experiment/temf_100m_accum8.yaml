@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - override /data: augmented
+  - override /model: temf_100m_accum8
+  - override /trainer: gpu
+
+data:
+  batch_size: 8
+trainer:
+  # Manual optimization clips once after all four backward passes.
+  gradient_clip_val: null
+  accumulate_grad_batches: 1

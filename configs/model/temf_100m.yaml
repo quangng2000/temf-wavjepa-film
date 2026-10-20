@@ -1,0 +1,8 @@
+# 98,179,238 trainable restoration parameters; frozen WavJEPA-Nat is additional.
+# Same seven levels, residual-block count, conditioning and full TEMF objective.
+defaults:
+  - temf
+  - _self_
+
+net:
+  nf: 128
