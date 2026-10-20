@@ -27,3 +27,19 @@ def test_absent_process_and_stale_log_are_not_the_same_failure(tmp_path):
     assert summarize(raw, config(), Pace(tmp_path / "b"))["status"] == "inactive"
     raw["failure"] = "Nonfinite gradient rejected"
     assert summarize(raw, config(), Pace(tmp_path / "c"))["status"] == "failed"
+
+
+def test_new_metrics_from_live_resume_supersede_old_failure(tmp_path):
+    raw = payload()
+    raw.update(failure="SIGTERM", failure_modified=90, metrics_path="version_1")
+    result = summarize(raw, config(), Pace(tmp_path / "pace"))
+    assert result["status"] == "training" and result["failure"] is None
+    assert result["previous_failure"] == "SIGTERM" and not result["failure_active"]
+
+
+def test_new_failure_or_absent_trainer_remains_a_failure(tmp_path):
+    raw = payload()
+    raw.update(failure="Current failure", failure_modified=100)
+    assert summarize(raw, config(), Pace(tmp_path / "new"))["status"] == "failed"
+    raw["failure_modified"], raw["workers"]["trainer"] = 90, []
+    assert summarize(raw, config(), Pace(tmp_path / "absent"))["status"] == "failed"

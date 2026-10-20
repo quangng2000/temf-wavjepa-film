@@ -54,6 +54,17 @@ def test_checkpoint_inspection_never_loads_contents(tmp_path):
 def test_absent_metrics_are_normal_during_startup(tmp_path):
     result = NAMESPACE["snapshot_metrics"](tmp_path)
     assert result["rows"] == [] and result["metrics_error"] is None
+    assert result["metrics_path"] is None
+
+
+def test_latest_lightning_metrics_version_wins_after_resume(tmp_path):
+    for version, step in ((0, 18), (1, 27)):
+        root = tmp_path / "metrics" / f"version_{version}"
+        root.mkdir(parents=True)
+        (root / "metrics.csv").write_text(f"step,train/loss\n{step},0.2\n")
+    result = NAMESPACE["snapshot_metrics"](tmp_path)
+    assert result["metrics_path"] == "version_1"
+    assert result["rows"][-1]["step"] == 28
 
 
 def test_gpu_parser_never_emits_nonfinite_json():

@@ -8,6 +8,18 @@ METRIC_NAMES = ("loss", "raw_loss", "gradient_norm", "clipped", "target_rms",
                 "correction_rms", "boundary_actual", "boundary_ratio", "delta")
 
 
+def latest_metric_path(run_path):
+    root = Path(run_path) / "metrics"
+    candidates = []
+    for path in root.glob("version_*/metrics.csv"):
+        try:
+            version = int(path.parent.name.removeprefix("version_"))
+        except ValueError:
+            continue
+        candidates.append((version, path))
+    return max(candidates, default=(None, None))[1]
+
+
 def read_metric_tail(path):
     with Path(path).open("rb") as source:
         header = source.readline(8192)
@@ -59,15 +71,19 @@ def parse_metric_csv(content):
 
 
 def snapshot_metrics(run_path):
-    path = Path(run_path) / "metrics/version_0/metrics.csv"
+    path = latest_metric_path(run_path)
+    if path is None:
+        return {"rows": [], "nonfinite_metrics": [], "metrics_modified": None,
+                "metrics_path": None, "metrics_error": None}
     try:
         content = read_metric_tail(path)
         rows, nonfinite = parse_metric_csv(content)
         return {"rows": rows, "nonfinite_metrics": nonfinite,
-                "metrics_modified": path.stat().st_mtime, "metrics_error": None}
+                "metrics_modified": path.stat().st_mtime,
+                "metrics_path": path.parent.name, "metrics_error": None}
     except FileNotFoundError:
         return {"rows": [], "nonfinite_metrics": [], "metrics_modified": None,
-                "metrics_error": None}
+                "metrics_path": None, "metrics_error": None}
     except (OSError, ValueError, csv.Error) as error:
         return {"rows": [], "nonfinite_metrics": [], "metrics_modified": None,
-                "metrics_error": str(error)}
+                "metrics_path": path.parent.name, "metrics_error": str(error)}

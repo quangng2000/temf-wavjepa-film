@@ -14,7 +14,9 @@ def test_snapshot_program_runs_as_standalone_python_and_returns_log_lines(tmp_pa
     snapshot = json.loads(result.stdout)
     assert snapshot["log"] == ["training log", "second line"]
     assert snapshot["rows"] == [] and snapshot["metrics_modified"] is None
-    assert snapshot["failure"] is None and snapshot["checkpoint"] is None
+    assert snapshot["metrics_path"] is None
+    assert snapshot["failure"] is None and snapshot["failure_modified"] is None
+    assert snapshot["checkpoint"] is None
 
 
 def test_shell_metacharacters_in_run_path_are_python_data(tmp_path):
