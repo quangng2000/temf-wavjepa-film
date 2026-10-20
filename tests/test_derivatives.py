@@ -72,7 +72,7 @@ def evaluate(model, batch, prepared, backend):
         targets.append(target)
         return target
     objective._compute_mean_velocity_c = capture
-    result = load_prepared_forward()(objective, AudioVelocity(model), batch[0][:, None],
+    result = load_prepared_forward(backend)(objective, AudioVelocity(model), batch[0][:, None],
         AudioCondition(*batch[1:]), cur_step=prepared.step, prepared=prepared)
     loss = result["total"].mean()
     loss.backward()
@@ -91,3 +91,10 @@ def test_prepared_full_temf_target_loss_and_gradient_match_reverse(kind, step):
     tolerances = dict(atol=2e-5, rtol=5e-4) if kind == "cnn" else dict(atol=1e-10, rtol=1e-8)
     for value, reference in zip(actual, expected, strict=True):
         torch.testing.assert_close(value, reference, **tolerances)
+
+
+def test_prepared_forward_uses_requested_jvp_namespace():
+    reverse = load_prepared_forward("reverse").__globals__["jvp"]
+    forward = load_prepared_forward("forward_ad").__globals__["jvp"]
+    assert reverse is torch.autograd.functional.jvp
+    assert forward is forward_ad_jvp

@@ -95,3 +95,13 @@ def test_sampling_preserves_ema_and_single_step_defaults():
     cfg = config("sample", ["checkpoint=/tmp/model.ckpt", "input=/tmp/input.wav"])
     assert cfg.weights == "ema" and cfg.nfe == 1 and cfg.device == "cpu"
     assert cfg.task_name == "sample" and cfg.paths.root_dir == str(ROOT)
+
+
+def test_trigflow_experiment_is_explicit_and_keeps_temf_schedule():
+    baseline = config(overrides=["experiment=temf_325m_accum8"])
+    trigflow = config(overrides=["experiment=temf_325m_trigflow_accum8"])
+    assert baseline.model.objective.flow_path == "linear"
+    assert trigflow.model.objective.flow_path == "trigflow"
+    assert trigflow.total_updates == baseline.total_updates == 200000
+    assert trigflow.model.objective.jvp_backend == baseline.model.objective.jvp_backend
+    assert trigflow.data.batch_size == baseline.data.batch_size == 8

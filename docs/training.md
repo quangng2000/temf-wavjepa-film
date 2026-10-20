@@ -123,6 +123,24 @@ checkpoint requires an explicit migration rather than silently changing its
 numerics. Performance probes and equivalence reports are stored locally under
 `runs/jvp-speed-20261019/`; no production controller is started by these checks.
 
+### Opt-in normalized TrigFlow path
+
+To test a variance-preserving trigonometric path with the same 325M network,
+forward-mode full TEMF derivative, effective batch eight, and 200,000-update
+schedule, select:
+
+```sh
+python -m src.train experiment=temf_325m_trigflow_accum8 \
+  data.train_manifest=/absolute/train.jsonl \
+  data.val_manifest=/absolute/val.jsonl
+```
+
+This changes the clean-to-noise path and analytic path velocity. It does not
+change the TEMF scheduler, weighting, target, JVP, or solver time coordinate.
+It is an experiment from fresh weights; the changed checkpoint recipe prevents
+silently resuming a linear-path checkpoint. See the equations and scope in
+[Training and sampling explained](training-and-sampling.md#opt-in-normalized-trigflow-path).
+
 Resume checks the model/encoder/transform/objective recipe. Prepared and generated
 training datasets use TorchData StatefulDataLoader; Lightning saves its iteration
 state. Dataset RNG is checkpointed for crops and augmentation seeds. Replay tests

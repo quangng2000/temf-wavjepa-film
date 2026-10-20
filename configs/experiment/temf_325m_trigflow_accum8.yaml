@@ -1,0 +1,7 @@
+# @package _global_
+defaults:
+  - temf_325m_accum8
+  - override /model: temf_325m_trigflow_forward_ad
+  - _self_
+
+# Opt-in normalized TrigFlow path. TEMF schedule time remains q in [0, 1].

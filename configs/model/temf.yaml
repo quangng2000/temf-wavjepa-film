@@ -18,6 +18,7 @@ conditioner:
 objective:
   _target_: src.flow.objective.TEMFObjective
   total_updates: ${total_updates}
+  flow_path: linear
 optimizer:
   _target_: torch.optim.AdamW
   _partial_: true
