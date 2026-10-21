@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software in research or build on this implementation, please
+  cite it using this metadata and include the commit or release you used.
+type: software
+title: "TEMF + WavJEPA-Nat"
+authors:
+  - name: "TEMF + WavJEPA-Nat contributors"
+repository-code: "https://github.com/quangng2000/temf-wavjepa-film"
+url: "https://github.com/quangng2000/temf-wavjepa-film"

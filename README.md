@@ -45,3 +45,20 @@ pinned WavJEPA-Nat weights; follow the [training guide](docs/training.md).
 
 [Watch the 2:28 animation](docs/media/film-temf-scm-motion.mp4) — a toy illustration
 of the method, not a trained-model result. [Details](docs/animation/README.md).
+
+## Citation
+
+If you use this code in research or build on this implementation, please cite this
+repository using [CITATION.cff](CITATION.cff). Include the commit or release you used
+so others can reproduce your results.
+
+```bibtex
+@software{temf_wavjepa_nat,
+  author = {{TEMF + WavJEPA-Nat contributors}},
+  title = {{TEMF + WavJEPA-Nat}},
+  url = {https://github.com/quangng2000/temf-wavjepa-film}
+}
+```
+
+Please also cite the relevant original methods and implementations listed in
+[Upstream sources and adaptations](third_party/README.md).
