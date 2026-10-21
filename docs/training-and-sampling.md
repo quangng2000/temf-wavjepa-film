@@ -141,6 +141,34 @@ At $t=0$ the path is clean; at $t=1$ it is Gaussian noise. The degraded coeffici
 $y$ remain a separate condition. Inference integrates in the reverse direction,
 from $t=1$ to $t=0$.
 
+### Opt-in normalized TrigFlow path
+
+The `temf_325m_trigflow_accum8` experiment replaces only the path geometry. It keeps
+the TEMF time-pair scheduler, temporal weighting, mean-velocity target, JVP,
+optimizer, network, positional time controls, and reverse solver. Write
+$q\in[0,1]$ for the unchanged TEMF schedule coordinate and
+$\phi=\pi q/2$. The opt-in path is
+
+```math
+\begin{aligned}
+x_q &= \cos(\phi)c+\sin(\phi)z,\\
+v_{\mathrm{path}}(q)=\frac{dx_q}{dq}
+  &= \frac{\pi}{2}\left[-\sin(\phi)c+\cos(\phi)z\right].
+\end{aligned}
+\tag{4a}
+```
+
+This preserves the clean and Gaussian endpoints while keeping
+$\cos^2(\phi)+\sin^2(\phi)=1$. The $\pi/2$ factor is required because TEMF still
+differentiates with respect to $q$, rather than the angle $\phi$. The solver can
+therefore keep its existing step size $q-r$.
+
+This experiment combines the TrigFlow path with the repository's existing
+sCM-inspired positional conditioning and RMS normalization. It does **not**
+implement the sCM loss, adaptive double normalization, or the complete sCM
+architecture. TEMF remains the training objective. The path name is recorded in
+the checkpoint recipe, so linear-path checkpoints require an explicit migration.
+
 ### Progress-dependent time pairs
 
 Let $\sigma(q)=(1+e^{-q})^{-1}$ and let $\mathcal{Q}$ denote the distribution
@@ -260,7 +288,8 @@ head needs no coefficient-head $1/t^2$ conversion.
 1. & (c,y)\gets\bigl(\mathcal{E}(a_{\mathrm{clean}}),\mathcal{E}(a_{\mathrm{obs}})\bigr)\\[4pt]
 2. & h\gets\mathrm{FrozenNatContext}(a_{\mathrm{obs}})\\[4pt]
 3. & (t,r)\gets\mathrm{SampleTimes}(B,p)\quad\text{using (5)--(6)}\\[4pt]
-4. & z\sim\mathcal{N}(0,I),\quad x_t\gets(1-t)c+tz,\quad v_{\mathrm{path}}\gets z-c\\[4pt]
+4. & z\sim\mathcal{N}(0,I),\quad (x_t,v_{\mathrm{path}})\gets
+     \mathrm{SelectedPath}(c,z,t)\quad\text{using (4) or (4a)}\\[4pt]
 5. & \bar v\gets\mathrm{ReferenceVelocity}(\theta,x_t,t,y,h,p)\quad\text{using (7)}\\[4pt]
 6. & U^\star\gets\mathrm{sg}\!\left[\bar v-(t-r)J_\theta\right]\quad\text{using (8)}\\[4pt]
 7. & \mathcal{L}\gets\mathrm{WeightedVelocityError}(\theta,U^\star)\quad\text{using (9)--(10)}\\[4pt]

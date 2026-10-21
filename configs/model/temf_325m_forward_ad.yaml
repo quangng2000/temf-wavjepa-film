@@ -1,0 +1,14 @@
+defaults:
+  - temf
+  - _self_
+
+_target_: src.models.microbatch.MicrobatchRestorationModule
+net:
+  nf: 256
+effective_batch_size: 8
+microbatch_size: 4
+microbatch_gradient_clip: 1.0
+objective:
+  jvp_backend: forward_ad
+# 325,497,126 trainable restoration parameters; frozen WavJEPA-Nat is additional.
+# Same seven levels, residual-block count, conditioning and full TEMF objective.

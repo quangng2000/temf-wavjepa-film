@@ -1,0 +1,6 @@
+defaults:
+  - temf_325m_forward_ad
+  - _self_
+
+objective:
+  flow_path: trigflow

@@ -66,6 +66,81 @@ Schedules use completed optimizer updates toward 300,000, including after resume
 Checkpoints are saved every 1,000 updates; validation every 5,000. EMA is updated
 once per optimizer step via PyTorch `AveragedModel`, then checkpointed.
 
+### 98M model with effective batch eight
+
+The opt-in `experiment=temf_100m_accum8` preset uses 98,179,238 trainable parameters,
+FP32, and the frozen Nat encoder. Supply the four manifests described in
+[augmentation mode](augmentation.md) when selecting it. It does not change defaults.
+
+The loader supplies eight clips. Before encoding, the objective samples all eight
+time pairs, noise tensors, and temporal weights together. Training then encodes
+two clips at a time and backpropagates each microbatch mean multiplied by `2/8`.
+Only after all four groups does it clip the accumulated gradient and advance AdamW
+and EMA once. The scheduler advances once per effective batch, including on resume.
+Do not also enable Lightning's `accumulate_grad_batches`; it remains `1`.
+
+The pinned TEMF forward keeps its full continuous JVP target, velocity mixture,
+temporal weighting, and boundary scheduler. A checked adapter only replaces its
+three sampling/weight assignments with prepared full-batch values. This preserves
+the floor-based boundary count: seven diagonal examples initially and one near the
+end of the 300,000-update schedule. Sampling four independent batches of two would
+lose that late diagonal example. The microbatch path requires single-device FP32
+continuous TEMF; validation retains the normal validation batch handling.
+
+A four-update A100 SXM 80 GB test on real four-second clips passed at schedule
+positions 0, 1, 299998, and 299999. Peak allocated memory was 50.04 GiB; allocator
+reservation peaked at 66.83 GiB. Late-schedule updates took 29.3–29.9 seconds per
+effective batch. These are short capacity/correctness checks from fresh weights,
+not evidence of convergence or long-run stability. Production was not started.
+
+### Faster, equivalent forward-mode JVP
+
+Select `experiment=temf_100m_accum8 model=temf_100m_forward_ad` to compute the
+full TEMF directional derivative with PyTorch forward-mode AD. The default still
+uses the authors' `torch.autograd.functional.jvp`, which computes a JVP through
+double backward. The opt-in backend keeps the state and time derivative terms,
+detached target, velocity mixture, temporal weights and boundary schedule. It
+does not use finite differences or remove the JVP correction. Both presets use
+the same FP32 settings, effective batch eight and microbatch two.
+
+On the A100 SXM 80 GB, a matched two-update late-schedule probe measured 29.73
+seconds for the warmed-up reverse backend versus 4.05 seconds for forward AD.
+The JVP target stage fell from 27.35 to 1.74 seconds. Peak allocated memory fell
+from 50.02 to 15.68 GiB. The configured backend also completed two early-schedule
+updates; its warmed-up update took 2.67 seconds. The first update includes startup
+overhead and took 6.08 seconds late or 4.75 seconds early. These short probes used
+fresh weights and a small set of real four-second clips, not production training.
+
+A separate full-model comparison used identical weights, data and random draws.
+Corrected targets differed by at most 5.96e-8, and all 98,179,238 parameter-gradient
+values passed `atol=1e-5, rtol=1e-4` (maximum absolute difference 5.59e-9).
+The full derivative, detached target and loss were also checked. Floating-point
+rounding differs between AD algorithms; these checks do not establish long-run
+stability, convergence or identical training trajectories.
+
+The backend is recorded in the objective recipe, so switching an existing
+checkpoint requires an explicit migration rather than silently changing its
+numerics. Performance probes and equivalence reports are stored locally under
+`runs/jvp-speed-20261019/`; no production controller is started by these checks.
+
+### Opt-in normalized TrigFlow path
+
+To test a variance-preserving trigonometric path with the same 325M network,
+forward-mode full TEMF derivative, effective batch eight, and 200,000-update
+schedule, select:
+
+```sh
+python -m src.train experiment=temf_325m_trigflow_accum8 \
+  data.train_manifest=/absolute/train.jsonl \
+  data.val_manifest=/absolute/val.jsonl
+```
+
+This changes the clean-to-noise path and analytic path velocity. It does not
+change the TEMF scheduler, weighting, target, JVP, or solver time coordinate.
+It is an experiment from fresh weights; the changed checkpoint recipe prevents
+silently resuming a linear-path checkpoint. See the equations and scope in
+[Training and sampling explained](training-and-sampling.md#opt-in-normalized-trigflow-path).
+
 Resume checks the model/encoder/transform/objective recipe. Prepared and generated
 training datasets use TorchData StatefulDataLoader; Lightning saves its iteration
 state. Dataset RNG is checkpointed for crops and augmentation seeds. Replay tests

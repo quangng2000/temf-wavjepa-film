@@ -13,7 +13,7 @@ dist/
 # Local data, weights, and experiments
 /data/
 datasets/
-checkpoints/
+/checkpoints/
 runs/
 outputs/
 /logs/

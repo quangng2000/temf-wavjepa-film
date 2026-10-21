@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TEMF · Live training</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main>
+<header><div><p class="eyebrow">TEMF · wavJEPA / training console</p><h1>Live training</h1><p class="muted" id="machine">Connecting to your pod…</p></div>
+<div class="controls"><span class="status" id="status" role="status">Connecting</span><p><button id="refresh" type="button">Refresh now</button></p></div></header>
+<div class="alert" id="alert" role="status" hidden></div>
+<div id="content" hidden>
+<section class="hero" aria-label="Training progress"><div class="progress-title"><div><small>COMPLETED OPTIMIZER UPDATES</small><div class="count" id="steps">—</div></div><div class="align-right"><div class="value" id="percent">—</div><small>of the training target</small></div></div>
+<div class="track" role="progressbar" aria-label="Completed optimizer updates" aria-valuemin="0" id="progress"><div class="fill" id="fill"></div></div><small id="activity">Waiting for first update</small></section>
+<section class="metrics" aria-label="Latest training metrics">
+<div class="metric"><small>Observed time per update</small><div class="value" id="speed">—</div><small id="speed-note">Measuring progress</small></div>
+<div class="metric"><small>Pre-clipping gradient norm</small><div class="value" id="gradient">—</div><small id="gradient-note">Clipping threshold: 1.0</small></div>
+<div class="metric"><small>Weighted TEMF loss</small><div class="value" id="loss">—</div><small>The objective used for the update</small></div>
+<div class="metric"><small>Raw TEMF loss</small><div class="value" id="raw-loss">—</div><small>Unweighted objective</small></div>
+</section>
+<section class="charts" aria-label="Training history">
+<article class="plot"><h2>TEMF loss</h2><div class="legend"><span><i class="green"></i>Weighted</span><span><i class="blue"></i>Raw</span></div><div id="loss-chart"></div><small id="loss-caption"></small></article>
+<article class="plot"><h2>Gradient norm before clipping</h2><div class="legend"><span><i class="green"></i>Gradient norm</span><span><i class="dashed"></i>Clip threshold 1.0</span></div><div id="gradient-chart"></div><small id="gradient-caption"></small></article>
+<article class="plot wide"><h2>Observed update pace</h2><div id="speed-chart"></div><small id="pace-caption">30-second observation windows: wall-clock seconds divided by completed updates. Includes data waits, validation and checkpoint writes; these are not individual update timers.</small></article>
+</section>
+<section class="bottom"><div><h2>Run</h2><dl class="details">
+<dt>Model / effective batch</dt><dd>325M / 8 clips (4 at a time)</dd><dt>Objective</dt><dd>Full TEMF · forward-mode JVP</dd><dt>Schedule target</dt><dd id="schedule">200,000 updates</dd>
+<dt>Estimated time remaining</dt><dd id="eta">Measuring progress</dd><dt>GPU utilization</dt><dd id="util">—</dd><dt>GPU memory</dt><dd id="memory">—</dd><dt>Run</dt><dd id="run">—</dd></dl></div>
+<div><h2>Stability and checkpoints</h2><dl class="details"><dt>Recent gradient median</dt><dd id="median">—</dd><dt>Recent updates clipped</dt><dd id="clipping">—</dd>
+<dt>Target / correction RMS</dt><dd id="rms">—</dd><dt>Latest checkpoint</dt><dd id="checkpoint">—</dd><dt>Checkpoint / validation interval</dt><dd>1,000 / 5,000 updates</dd><dt>Persistent retention</dt><dd>Latest 2 + every 20,000 updates</dd></dl></div></section>
+<p class="note">The pace and remaining-time estimate reflect this observation window, not individual step timers. They can change as TEMF’s schedule adds interval examples. Loss and gradient norms describe training, not audio quality.</p>
+<details><summary>Connection and recent training log</summary><dl class="details connection"><dt>Last successful reading</dt><dd id="updated">—</dd><dt>Pod</dt><dd id="pod">—</dd></dl><pre id="log">Waiting for logs</pre></details>
+</div>
+<footer><span>Read-only viewer · auto-refresh every 10 seconds while visible</span><span id="freshness">Waiting for first reading</span><span id="next">Connecting…</span></footer>
+<p class="footnote">Closing this page does not interrupt training. This viewer never stops or restarts the pod.</p>
+</main><script type="module" src="/app.js"></script></body></html>
